@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f7fb">
+    <title>Leitor de cartão de visita</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #20243a;
+            background: #f6f7fb;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 32px 18px;
+        }
+
+        main {
+            width: min(100%, 680px);
+            padding: clamp(24px, 6vw, 44px);
+            border: 1px solid #e8eaf2;
+            border-radius: 24px;
+            background: #fff;
+            box-shadow: 0 18px 60px rgb(35 43 79 / 8%);
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: #6255d9;
+            font-size: .78rem;
+            font-weight: 750;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            letter-spacing: -.045em;
+        }
+
+        .intro {
+            margin: 12px 0 24px;
+            color: #656b7d;
+            line-height: 1.65;
+        }
+
+        .preview {
+            position: relative;
+            display: grid;
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            min-height: 220px;
+            max-height: 420px;
+            overflow: hidden;
+            place-items: center;
+            border-radius: 16px;
+            background: #171a29;
+            color: #c6c9d6;
+        }
+
+        video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        video[hidden], .placeholder[hidden], .live-overlay[hidden] { display: none; }
+
+        .live-overlay {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .snapshot {
+            display: block;
+            width: 100%;
+            max-height: 420px;
+            object-fit: contain;
+            background: #171a29;
+        }
+
+        .snapshot[hidden] { display: none; }
+
+        .placeholder {
+            max-width: 280px;
+            padding: 28px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .camera-icon {
+            display: block;
+            margin: 0 auto 12px;
+            color: #9499ad;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-height: 48px;
+            margin: 12px 0 18px;
+            color: #656b7d;
+            font-size: .92rem;
+        }
+
+        .status::before {
+            width: 9px;
+            height: 9px;
+            flex: 0 0 auto;
+            border-radius: 50%;
+            background: #a7aaba;
+            content: "";
+        }
+
+        .status[data-state="active"] { color: #218358; }
+        .status[data-state="active"]::before { background: #28a66b; }
+        .status[data-state="error"] { color: #b33a47; }
+        .status[data-state="error"]::before { background: #d64d5c; }
+
+        .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+        button {
+            min-height: 46px;
+            padding: 0 18px;
+            border: 0;
+            border-radius: 11px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform .15s ease, background .15s ease;
+        }
+
+        button:hover:not(:disabled) { transform: translateY(-1px); }
+        button:focus-visible { outline: 3px solid #a8a1ff; outline-offset: 3px; }
+        button:disabled { cursor: not-allowed; opacity: .5; }
+
+        .start { background: #6255d9; color: #fff; }
+        .start:hover:not(:disabled) { background: #5144c3; }
+        .stop { background: #f0f1f6; color: #41465a; }
+
+        .capture { background: #e9e7ff; color: #5144c3; }
+
+        .result {
+            margin-top: 24px;
+        }
+
+        .result[hidden] { display: none; }
+
+        .result label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .contact-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .contact-fields label { min-width: 0; }
+        .contact-fields .full-width { grid-column: 1 / -1; }
+
+        .contact-fields input {
+            display: block;
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 1px solid #e1e3ec;
+            border-radius: 10px;
+            color: #20243a;
+            font: inherit;
+        }
+
+        .contact-fields input:focus-visible, .result textarea:focus-visible {
+            outline: 3px solid #a8a1ff;
+            outline-offset: 2px;
+        }
+
+        .result-heading {
+            margin: 0 0 14px;
+            font-size: 1.1rem;
+        }
+
+        .result-help {
+            margin: 0 0 16px;
+            color: #656b7d;
+            font-size: .9rem;
+            line-height: 1.5;
+        }
+
+        .result textarea {
+            display: block;
+            width: 100%;
+            min-height: 150px;
+            padding: 14px;
+            border: 1px solid #e1e3ec;
+            border-radius: 12px;
+            color: #20243a;
+            font: inherit;
+            line-height: 1.55;
+            resize: vertical;
+        }
+
+        .result-status {
+            min-height: 24px;
+            margin: 10px 0 0;
+            color: #656b7d;
+            font-size: .9rem;
+        }
+
+        .result-status[data-state="error"] { color: #b33a47; }
+
+        .capture-progress {
+            display: block;
+            width: 100%;
+            height: 10px;
+            margin-top: 14px;
+            accent-color: #6255d9;
+        }
+
+        .capture-progress[hidden] { display: none; }
+
+        @media (max-width: 520px) {
+            .contact-fields { grid-template-columns: 1fr; }
+            .contact-fields .full-width { grid-column: auto; }
+        }
+
+        .privacy {
+            margin: 20px 0 0;
+            color: #858a9a;
+            font-size: .82rem;
+            line-height: 1.55;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <p class="eyebrow">Digitalização de contato</p>
+        <h1>Leitor de cartão de visita</h1>
+        <p class="intro">Enquadre o cartão inteiro, mantenha a câmera firme e tire uma foto. A leitura tenta separar nome, empresa, cargo e dados de contato para você revisar.</p>
+
+        <section class="preview" aria-label="Pré-visualização da câmera">
+            <div class="placeholder" id="placeholder">
+                <svg class="camera-icon" width="42" height="36" viewBox="0 0 42 36" fill="none" aria-hidden="true">
+                    <rect x="2" y="7" width="28" height="24" rx="5" stroke="currentColor" stroke-width="2.5"/>
+                    <path d="m30 15 9-5v18l-9-5V15Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+                    <circle cx="16" cy="19" r="5" stroke="currentColor" stroke-width="2.5"/>
+                </svg>
+                A pré-visualização da câmera aparecerá aqui.
+            </div>
+            <video id="video" autoplay playsinline muted hidden></video>
+            <canvas class="live-overlay" id="live-overlay" aria-hidden="true" hidden></canvas>
+        </section>
+        <img class="snapshot" id="snapshot" alt="Foto capturada para leitura do texto" hidden>
+
+        <p class="status" id="status" role="status" aria-live="polite">Câmera desligada.</p>
+
+        <div class="actions">
+            <button class="start" id="start" type="button">Testar câmera</button>
+            <button class="capture" id="capture" type="button" disabled>Fotografar cartão</button>
+            <button class="stop" id="stop" type="button" disabled>Desligar câmera</button>
+        </div>
+
+        <section class="result" id="result" aria-labelledby="result-heading" hidden>
+            <h2 class="result-heading" id="result-heading">Confira os dados do cartão</h2>
+            <p class="result-help">Os campos são preenchidos automaticamente a partir do texto reconhecido. Revise e corrija antes de usar; o OCR pode confundir letras e números.</p>
+            <div class="contact-fields">
+                <label for="contact-name">Nome
+                    <input id="contact-name" autocomplete="name">
+                </label>
+                <label for="contact-company">Empresa
+                    <input id="contact-company" autocomplete="organization">
+                </label>
+                <label for="contact-title">Cargo
+                    <input id="contact-title" autocomplete="organization-title">
+                </label>
+                <label for="contact-phone">Telefone
+                    <input id="contact-phone" type="tel" autocomplete="tel">
+                </label>
+                <label for="contact-email">E-mail
+                    <input id="contact-email" type="email" autocomplete="email">
+                </label>
+                <label for="contact-website">Site
+                    <input id="contact-website" type="url" autocomplete="url">
+                </label>
+                <label class="full-width" for="contact-address">Endereço
+                    <input id="contact-address" autocomplete="street-address">
+                </label>
+            </div>
+            <label id="raw-text-label" for="recognized-text">Texto original reconhecido (para conferência)</label>
+            <textarea id="recognized-text" readonly placeholder="O texto da foto aparecerá aqui."></textarea>
+            <p class="result-status" id="ocr-status" role="status" aria-live="polite"></p>
+            <progress class="capture-progress" id="capture-progress" max="100" value="0" aria-label="Progresso do reconhecimento" hidden></progress>
+        </section>
+
+        <p class="privacy">O navegador pedirá autorização para usar a câmera. A foto é processada neste dispositivo e não é enviada. A biblioteca e os dados de português são baixados do CDN na primeira leitura. Use HTTPS ou localhost.</p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+    <script>
+        const video = document.querySelector("#video");
+        const placeholder = document.querySelector("#placeholder");
+        const preview = document.querySelector(".preview");
+        const liveOverlay = document.querySelector("#live-overlay");
+        const overlayContext = liveOverlay.getContext("2d");
+        const snapshot = document.querySelector("#snapshot");
+        const statusMessage = document.querySelector("#status");
+        const startButton = document.querySelector("#start");
+        const captureButton = document.querySelector("#capture");
+        const stopButton = document.querySelector("#stop");
+        const resultSection = document.querySelector("#result");
+        const recognizedText = document.querySelector("#recognized-text");
+        const contactFields = {
+            name: document.querySelector("#contact-name"),
+            company: document.querySelector("#contact-company"),
+            title: document.querySelector("#contact-title"),
+            phone: document.querySelector("#contact-phone"),
+            email: document.querySelector("#contact-email"),
+            website: document.querySelector("#contact-website"),
+            address: document.querySelector("#contact-address")
+        };
+        const ocrStatus = document.querySelector("#ocr-status");
+        const captureProgress = document.querySelector("#capture-progress");
+        let cameraStream = null;
+        let ocrWorker = null;
+        let ocrWorkerPromise = null;
+        let liveScanTimer = null;
+        let liveScanning = false;
+        let recognitionQueue = Promise.resolve();
+        let liveFrame = null;
+        let captureOcrStage = "";
+        let captureOcrProgressStart = 0;
+        let captureOcrProgressSpan = 100;
+
+        function setStatus(message, state = "idle") {
+            if (statusMessage.textContent === message && statusMessage.dataset.state === state) {
+                return;
+            }
+            statusMessage.textContent = message;
+            statusMessage.dataset.state = state;
+        }
+
+        function ensureOcrWorker() {
+            if (ocrWorker) {
+                return Promise.resolve(ocrWorker);
+            }
+            if (!ocrWorkerPromise) {
+                ocrWorkerPromise = Tesseract.createWorker("por", 1, {
+                    logger: (message) => {
+                        if (message.status === "recognizing text") {
+                            const progress = Math.round(message.progress * 100);
+                            if (liveScanning) {
+                                setStatus(`Procurando texto ao vivo... ${progress}%`, "active");
+                            } else if (captureOcrStage) {
+                                const overallProgress = Math.round(captureOcrProgressStart + progress * captureOcrProgressSpan / 100);
+                                setCaptureProgress(`${captureOcrStage} ${overallProgress}%`, overallProgress);
+                            }
+                        } else if (message.status === "loading language traineddata") {
+                            setStatus(`Baixando os dados de português... ${Math.round(message.progress * 100)}%`, "active");
+                        }
+                    }
+                }).then((worker) => {
+                    ocrWorker = worker;
+                    return worker;
+                }).catch((error) => {
+                    ocrWorkerPromise = null;
+                    throw error;
+                });
+            }
+            return ocrWorkerPromise;
+        }
+
+        function useOcrWorker(operation) {
+            const task = recognitionQueue.then(async () => {
+                const worker = await ensureOcrWorker();
+                return operation(worker);
+            });
+            recognitionQueue = task.then(() => undefined, () => undefined);
+            return task;
+        }
+
+        function recognize(image) {
+            return useOcrWorker((worker) => worker.recognize(image));
+        }
+
+        function setOcrParameters(parameters) {
+            return useOcrWorker((worker) => worker.setParameters(parameters));
+        }
+
+        function setCaptureProgress(message, progress = null) {
+            ocrStatus.textContent = message;
+            if (progress === null) {
+                captureProgress.removeAttribute("value");
+            } else {
+                captureProgress.value = progress;
+            }
+        }
+
+        function normalizeLine(line) {
+            return line.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
+        function extractContactDetails(text) {
+            const lines = text.split(/\r?\n/)
+                .map((line) => line.replace(/[|•▪]/g, " ").replace(/\s+/g, " ").trim())
+                .filter(Boolean);
+            const normalizedLines = lines.map(normalizeLine);
+            const normalizedText = text.replace(/\s+/g, " ");
+            const emails = normalizedText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+            const email = emails[0]
+                || lines.map((line) => line.match(/^([A-Z0-9._%+-]+)[Q©]([A-Z0-9.-]+\.[A-Z]{2,})$/i))
+                    .find(Boolean)?.slice(1).join("@")
+                || "";
+            const withoutEmails = normalizedText.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, " ");
+            const websiteMatch = withoutEmails.match(/(?:https?:\/\/|www\.)[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[a-z0-9./?=_#%&+-]*)?/i);
+            const websiteValue = websiteMatch ? websiteMatch[0].replace(/[.,;]+$/, "") : "";
+            const website = websiteValue && !/^https?:\/\//i.test(websiteValue)
+                ? `https://${websiteValue}`
+                : websiteValue;
+            const phoneMatches = withoutEmails.match(/(?:\+?\d[\d\s()./-]{6,}\d)/g) || [];
+            const phone = phoneMatches.find((value) => {
+                const digitCount = value.replace(/\D/g, "").length;
+                return digitCount >= 8 && digitCount <= 15;
+            })?.replace(/\s+/g, " ").trim() || "";
+
+            const labeledValue = (labels) => {
+                const labelPattern = new RegExp(`^(?:${labels})\\s*[:\\-]?\\s*(.+)$`, "i");
+                for (const line of lines) {
+                    const match = line.match(labelPattern);
+                    if (match?.[1]) {
+                        return match[1].trim();
+                    }
+                }
+                return "";
+            };
+            const nameLabel = labeledValue("name|nome|contact");
+            const companyLabel = labeledValue("company|empresa|organization|organiza[cç][aã]o");
+            const titleLabel = labeledValue("title|cargo|position|fun[cç][aã]o");
+            const addressLabel = labeledValue("address|endere[cç]o|morada");
+            const contactWords = /\b(?:tel|telefone|phone|mobile|celular|fax|email|e-mail|www|https?|linkedin|instagram|facebook|address|endere[cç]o)\b/i;
+            const titleWords = /\b(?:ceo|cto|cfo|coo|founder|founding|director|diretor|diretora|manager|gerente|president|presidente|owner|propriet[aá]rio|propriet[aá]ria|sales|vendas|marketing|engineer|engenheiro|engenheira|consultant|consultor|consultora|developer|desenvolvedor|desenvolvedora|designer|coordinator|coordenador|coordenadora|assistant|assistente)\b/i;
+            const companyWords = /\b(?:ltda|limitada|lda|inc\.?|llc|ltd\.?|corp\.?|corporation|company|co\.?|gmbh|s\.?a\.?|sarl|unipessoal)\b/i;
+            const streetWords = /\b(?:rua|avenida|av\.?|travessa|estrada|pra[cç]a|street|st\.?|road|rd\.?|boulevard|blvd\.?|suite|sala|andar|postal|zip)\b/i;
+            const candidates = lines.filter((line, index) => {
+                const normalized = normalizedLines[index];
+                return !contactWords.test(line)
+                    && !/@|(?:https?:\/\/)|www\./i.test(line)
+                    && !/\d{7,}/.test(line)
+                    && !/^[\s\d()+./-]+$/.test(line)
+                    && normalized.length >= 2;
+            });
+
+            const title = titleLabel || candidates.find((line) => titleWords.test(line)) || "";
+            let name = nameLabel || candidates.find((line) => {
+                const wordCount = line.split(/\s+/).length;
+                return wordCount >= 2 && wordCount <= 5
+                    && !titleWords.test(line)
+                    && !companyWords.test(line)
+                    && line !== title
+                    && line !== line.toUpperCase();
+            }) || "";
+            const company = companyLabel
+                || candidates.find((line) => companyWords.test(line))
+                || candidates.find((line) => line === line.toUpperCase() && line.length > 2 && line !== name && line !== title)
+                || "";
+            if (!name) {
+                name = candidates.find((line) => {
+                    const wordCount = line.split(/\s+/).length;
+                    return wordCount >= 2 && wordCount <= 5
+                        && !titleWords.test(line)
+                        && !companyWords.test(line)
+                        && line !== company
+                        && line !== title;
+                }) || "";
+            }
+
+            const address = addressLabel
+                || lines.find((line) => streetWords.test(line) && /\d/.test(line))
+                || "";
+
+            return {
+                name,
+                company,
+                title,
+                phone,
+                email,
+                website,
+                address
+            };
+        }
+
+        function showContactDetails(text) {
+            const details = extractContactDetails(text);
+            for (const [field, input] of Object.entries(contactFields)) {
+                input.value = details[field];
+            }
+        }
+
+        function drawLiveBoxes(words, sourceWidth, sourceHeight) {
+            const bounds = preview.getBoundingClientRect();
+            const pixelRatio = window.devicePixelRatio || 1;
+            const canvasWidth = Math.round(bounds.width * pixelRatio);
+            const canvasHeight = Math.round(bounds.height * pixelRatio);
+            if (liveOverlay.width !== canvasWidth || liveOverlay.height !== canvasHeight) {
+                liveOverlay.width = canvasWidth;
+                liveOverlay.height = canvasHeight;
+            }
+
+            overlayContext.setTransform(1, 0, 0, 1, 0, 0);
+            overlayContext.clearRect(0, 0, canvasWidth, canvasHeight);
+            const scale = Math.min(bounds.width / sourceWidth, bounds.height / sourceHeight);
+            const offsetX = (bounds.width - sourceWidth * scale) / 2;
+            const offsetY = (bounds.height - sourceHeight * scale) / 2;
+            overlayContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+            overlayContext.strokeStyle = "#28d17c";
+            overlayContext.lineWidth = 2;
+            overlayContext.shadowColor = "rgba(0, 0, 0, 0.75)";
+            overlayContext.shadowBlur = 3;
+
+            for (const word of words) {
+                if (!word.text?.trim() || word.confidence < 25) {
+                    continue;
+                }
+                const { x0, y0, x1, y1 } = word.bbox;
+                const x = offsetX + x0 * scale;
+                const y = offsetY + y0 * scale;
+                const width = (x1 - x0) * scale;
+                const height = (y1 - y0) * scale;
+                overlayContext.strokeRect(x, y, width, height);
+                overlayContext.beginPath();
+                overlayContext.moveTo(x, y1 * scale + offsetY);
+                overlayContext.lineTo(x + width, y1 * scale + offsetY);
+                overlayContext.stroke();
+            }
+        }
+
+        function clearLiveBoxes() {
+            if (overlayContext) {
+                overlayContext.setTransform(1, 0, 0, 1, 0, 0);
+                overlayContext.clearRect(0, 0, liveOverlay.width, liveOverlay.height);
+            }
+        }
+
+        function scheduleLiveScan() {
+            if (!liveScanning || !cameraStream) {
+                return;
+            }
+            liveScanTimer = window.setTimeout(scanVideoFrame, 900);
+        }
+
+        async function scanVideoFrame() {
+            if (!liveScanning || !cameraStream || !video.videoWidth || !video.videoHeight) {
+                scheduleLiveScan();
+                return;
+            }
+
+            try {
+                if (!liveFrame) {
+                    liveFrame = document.createElement("canvas");
+                }
+                const scale = Math.min(1280 / video.videoWidth, 1);
+                liveFrame.width = Math.round(video.videoWidth * scale);
+                liveFrame.height = Math.round(video.videoHeight * scale);
+                const frameContext = liveFrame.getContext("2d");
+                if (!frameContext) {
+                    throw new Error("Não foi possível preparar o quadro do vídeo para leitura.");
+                }
+                frameContext.drawImage(video, 0, 0, liveFrame.width, liveFrame.height);
+                const { data } = await recognize(liveFrame);
+                if (!liveScanning) {
+                    return;
+                }
+                drawLiveBoxes(data.words || [], liveFrame.width, liveFrame.height);
+                const liveText = data.text.trim();
+                if (!liveText) {
+                    setStatus("Câmera ativa. Aponte para um texto para ver as marcações.", "active");
+                } else {
+                    setStatus("Texto detectado ao vivo. Tire uma foto para analisar e ver o resultado.", "active");
+                }
+            } catch (error) {
+                if (liveScanning) {
+                    setStatus(error.message || "Não foi possível analisar o vídeo.", "error");
+                    liveScanning = false;
+                    clearLiveBoxes();
+                }
+                return;
+            }
+
+            scheduleLiveScan();
+        }
+
+        async function startLiveScan() {
+            liveScanning = true;
+            liveOverlay.hidden = false;
+            setStatus("Preparando o reconhecimento de texto ao vivo...", "active");
+            try {
+                await ensureOcrWorker();
+                if (liveScanning && cameraStream) {
+                    await setOcrParameters({ tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT });
+                }
+                if (liveScanning && cameraStream) {
+                    scanVideoFrame();
+                }
+            } catch (error) {
+                liveScanning = false;
+                liveOverlay.hidden = true;
+                clearLiveBoxes();
+                setStatus(error.message || "Não foi possível iniciar o reconhecimento ao vivo.", "error");
+            }
+        }
+
+        function stopCamera() {
+            liveScanning = false;
+            window.clearTimeout(liveScanTimer);
+            liveOverlay.hidden = true;
+            clearLiveBoxes();
+            if (cameraStream) {
+                cameraStream.getTracks().forEach((track) => track.stop());
+                cameraStream = null;
+            }
+            video.srcObject = null;
+            video.hidden = true;
+            placeholder.hidden = false;
+            startButton.disabled = false;
+            captureButton.disabled = true;
+            stopButton.disabled = true;
+            setStatus("Câmera desligada.");
+        }
+
+        startButton.addEventListener("click", async () => {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setStatus("Este navegador não permite acesso à câmera. Use um navegador atualizado em HTTPS ou localhost.", "error");
+                return;
+            }
+
+            startButton.disabled = true;
+            setStatus("Aguardando autorização para acessar a câmera...");
+
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+                const [videoTrack] = cameraStream.getVideoTracks();
+                const focusModes = videoTrack.getCapabilities?.().focusMode;
+                if (focusModes?.includes("continuous")) {
+                    try {
+                        await videoTrack.applyConstraints({
+                            advanced: [{ focusMode: "continuous" }]
+                        });
+                    } catch (error) {
+                        console.warn("Continuous camera focus could not be enabled:", error);
+                    }
+                }
+                video.srcObject = cameraStream;
+                video.hidden = false;
+                placeholder.hidden = true;
+                captureButton.disabled = false;
+                stopButton.disabled = false;
+                setStatus("Câmera funcionando. A imagem está sendo exibida somente aqui.", "active");
+                startLiveScan();
+            } catch (error) {
+                cameraStream?.getTracks().forEach((track) => track.stop());
+                cameraStream = null;
+                startButton.disabled = false;
+                if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+                    setStatus("Acesso negado. Permita o uso da câmera nas configurações do navegador e tente novamente.", "error");
+                } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+                    setStatus("Nenhuma câmera foi encontrada neste dispositivo.", "error");
+                } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+                    setStatus("A câmera não está disponível. Ela pode estar sendo usada por outro aplicativo.", "error");
+                } else {
+                    setStatus("Não foi possível acessar a câmera. Verifique a conexão segura e as permissões do navegador.", "error");
+                }
+            }
+        });
+
+        captureButton.addEventListener("click", async () => {
+            if (!video.videoWidth || !video.videoHeight) {
+                ocrStatus.textContent = "Aguarde a imagem da câmera aparecer e tente novamente.";
+                ocrStatus.dataset.state = "error";
+                resultSection.hidden = false;
+                return;
+            }
+
+            const photo = document.createElement("canvas");
+            const scale = Math.min(1800 / Math.max(video.videoWidth, video.videoHeight), 2);
+            photo.width = Math.round(video.videoWidth * scale);
+            photo.height = Math.round(video.videoHeight * scale);
+            const photoContext = photo.getContext("2d", { willReadFrequently: true });
+            if (!photoContext) {
+                ocrStatus.textContent = "Não foi possível preparar a foto para leitura.";
+                ocrStatus.dataset.state = "error";
+                resultSection.hidden = false;
+                return;
+            }
+            photoContext.imageSmoothingQuality = "high";
+            photoContext.drawImage(video, 0, 0, photo.width, photo.height);
+            snapshot.src = photo.toDataURL("image/jpeg", 0.92);
+            snapshot.hidden = false;
+            resultSection.hidden = false;
+            recognizedText.value = "";
+            ocrStatus.dataset.state = "idle";
+            captureProgress.hidden = false;
+            setCaptureProgress("Preparando a análise da foto...", 0);
+            captureButton.disabled = true;
+            liveScanning = false;
+            window.clearTimeout(liveScanTimer);
+            liveOverlay.hidden = true;
+            clearLiveBoxes();
+
+            try {
+                await new Promise((resolve) => requestAnimationFrame(resolve));
+                if (!window.Tesseract) {
+                    throw new Error("A biblioteca de leitura não foi carregada. Verifique sua conexão com a internet e recarregue a página.");
+                }
+
+                setCaptureProgress("Aguardando a análise do vídeo terminar...");
+                await recognitionQueue;
+                setCaptureProgress("Preparando o reconhecimento em português...");
+                await ensureOcrWorker();
+                await setOcrParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO });
+
+                captureOcrStage = "Lendo a foto:";
+                captureOcrProgressStart = 0;
+                captureOcrProgressSpan = 85;
+                setCaptureProgress("Lendo a foto: 0%", 0);
+                const originalResult = await recognize(photo);
+                const originalText = originalResult.data.text.trim();
+                let bestText = originalText;
+
+                if (!originalText || originalResult.data.confidence < 65) {
+                    captureOcrStage = "Tentando melhorar a leitura:";
+                    captureOcrProgressStart = 85;
+                    captureOcrProgressSpan = 14;
+                    setCaptureProgress("Tentando melhorar a leitura: 85%", 85);
+
+                    const enhancedPhoto = document.createElement("canvas");
+                    enhancedPhoto.width = photo.width;
+                    enhancedPhoto.height = photo.height;
+                    const enhancedContext = enhancedPhoto.getContext("2d", { willReadFrequently: true });
+                    if (!enhancedContext) {
+                        throw new Error("Não foi possível preparar uma segunda tentativa de leitura.");
+                    }
+                    enhancedContext.filter = "grayscale(1) contrast(1.35)";
+                    enhancedContext.drawImage(photo, 0, 0);
+                    enhancedContext.filter = "none";
+                    const enhancedResult = await recognize(enhancedPhoto);
+                    const enhancedText = enhancedResult.data.text.trim();
+                    if (enhancedText && (!bestText || enhancedResult.data.confidence > originalResult.data.confidence)) {
+                        bestText = enhancedText;
+                    }
+                }
+
+                recognizedText.value = bestText;
+                showContactDetails(bestText);
+                captureOcrStage = "";
+                captureProgress.value = 100;
+                ocrStatus.textContent = recognizedText.value
+                    ? "Análise concluída. Confira o texto reconhecido; o OCR pode cometer erros."
+                    : "Análise concluída, mas nenhum texto foi reconhecido. Aproxime o texto, mantenha a câmera firme e tente novamente.";
+            } catch (error) {
+                captureOcrStage = "";
+                ocrStatus.textContent = error.message || "Não foi possível reconhecer o texto. Tente novamente.";
+                ocrStatus.dataset.state = "error";
+                captureProgress.removeAttribute("value");
+            } finally {
+                captureOcrStage = "";
+                captureButton.disabled = !cameraStream;
+                if (cameraStream) {
+                    startLiveScan();
+                }
+            }
+        });
+
+        stopButton.addEventListener("click", stopCamera);
+        window.addEventListener("pagehide", () => {
+            cameraStream?.getTracks().forEach((track) => track.stop());
+            ocrWorker?.terminate();
+        });
+    </script>
+</body>
+</html>
