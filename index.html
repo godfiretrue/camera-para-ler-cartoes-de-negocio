@@ -286,7 +286,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
     <script>
-        const apiUrl = "api/contacts.php";
+        const apiUrl = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+            ? "local-api/contacts.php"
+            : "/api/contacts.php";
         const workspace = document.querySelector("#workspace");
         const editor = document.querySelector("#editor");
         const editorTitle = document.querySelector("#editor-title");
@@ -308,15 +310,45 @@
         let requestNumber = 0;
         let previewUrl = "";
         let ocrWorker = null;
+        let apiPassword = "";
 
         async function requestApi(url, options = {}) {
-            const response = await fetch(url, {
+            const sendRequest = () => fetch(url, {
                 ...options,
-                headers: { "Content-Type": "application/json", ...options.headers }
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(apiPassword ? { "X-App-Password": apiPassword } : {}),
+                    ...options.headers
+                }
             });
-            const payload = await response.json();
+            let response = await sendRequest();
+            if (response.status === 401 && !apiPassword) {
+                const enteredPassword = window.prompt("Esta aplicação é privada. Introduza a palavra-passe de acesso:");
+                if (enteredPassword === null) {
+                    throw new Error("Acesso cancelado.");
+                }
+                apiPassword = enteredPassword;
+                response = await sendRequest();
+                if (response.status === 401) {
+                    apiPassword = "";
+                    throw new Error("Palavra-passe incorreta. Atualize a página para tentar novamente.");
+                }
+            }
+
+            let payload;
+            try {
+                payload = await response.json();
+            } catch {
+                throw new Error(`O servidor respondeu com um formato inesperado (HTTP ${response.status}).`);
+            }
             if (!response.ok) {
-                throw new Error(payload.error || "Não foi possível concluir o pedido.");
+                const error = payload?.error;
+                const message = typeof error === "string"
+                    ? error
+                    : typeof error?.message === "string"
+                        ? error.message
+                        : "Não foi possível concluir o pedido.";
+                throw new Error(message);
             }
             return payload;
         }
