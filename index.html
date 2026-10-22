@@ -471,7 +471,7 @@
                 contactCount.textContent = "Não foi possível carregar";
                 const message = document.createElement("div");
                 message.className = "error-state";
-                message.textContent = `${error.message} Verifique se o servidor PHP está activo e tente novamente.`;
+                message.textContent = `${error.message} Verifique a configuração da API Vercel/Supabase e tente novamente.`;
                 contactList.replaceChildren(message);
             }
         }

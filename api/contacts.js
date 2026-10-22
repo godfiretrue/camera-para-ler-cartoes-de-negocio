@@ -82,6 +82,7 @@ async function supabaseRequest(config, path, options = {}) {
             : payload?.message || "Não foi possível concluir a operação na base de dados.";
         const error = new Error(message);
         error.status = response.status >= 500 ? 502 : response.status;
+        error.code = typeof payload?.code === "string" ? payload.code : null;
         throw error;
     }
     return payload;
@@ -172,7 +173,11 @@ module.exports = async function handler(req, res) {
     } catch (error) {
         console.error("Contacts API failed:", error.message);
         return sendJson(res, error.status || 500, {
-            error: error.status ? error.message : "Não foi possível concluir a operação. Verifique a configuração da API Supabase."
+            error: error.status
+                ? error.code
+                    ? `${error.message} (Supabase ${error.code}, HTTP ${error.status}).`
+                    : error.message
+                : "Não foi possível contactar o Supabase. Verifique SUPABASE_URL, a chave de servidor e os registos da função Vercel."
         });
     }
 };
