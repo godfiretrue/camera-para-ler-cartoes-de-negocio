@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f6f2">
+    <title>Contactos | Ponto de Contacto</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #1d302d;
+            background: #f5f6f2;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+            --green: #216b59;
+            --green-dark: #174f42;
+            --muted: #71817b;
+            --line: #e4e9e3;
+        }
+
+        * { box-sizing: border-box; }
+        body { min-width: 320px; min-height: 100vh; margin: 0; }
+        button, input { font: inherit; }
+        button { cursor: pointer; }
+        button:focus-visible, input:focus-visible {
+            outline: 3px solid #91c6b5;
+            outline-offset: 2px;
+        }
+        .page { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 86px;
+            border-bottom: 1px solid var(--line);
+        }
+        .brand { display: inline-flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
+        .brand-mark {
+            display: grid;
+            width: 40px;
+            height: 40px;
+            place-items: center;
+            border-radius: 13px;
+            background: #dcece5;
+            color: var(--green);
+        }
+        .brand-name { font-size: 1rem; font-weight: 800; letter-spacing: -.02em; }
+        .brand-caption { display: block; margin-top: 2px; color: var(--muted); font-size: .75rem; font-weight: 500; }
+        .hero { padding: 48px 0 30px; }
+        .eyebrow {
+            margin: 0 0 10px;
+            color: var(--green);
+            font-size: .75rem;
+            font-weight: 800;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+        h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.2rem); letter-spacing: -.055em; line-height: 1.08; }
+        .hero-copy { max-width: 640px; margin: 14px 0 0; color: var(--muted); font-size: 1.05rem; line-height: 1.65; }
+        .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+        .button {
+            display: inline-flex;
+            min-height: 46px;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            padding: 0 17px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            font-size: .91rem;
+            font-weight: 750;
+            transition: background .15s ease, transform .15s ease;
+        }
+        .button:hover:not(:disabled) { transform: translateY(-1px); }
+        .button:disabled { cursor: wait; opacity: .65; }
+        .button-primary { background: var(--green); color: white; }
+        .button-primary:hover:not(:disabled) { background: var(--green-dark); }
+        .button-secondary { border-color: var(--line); background: white; color: #304640; }
+        .button-secondary:hover:not(:disabled) { background: #f0f5f1; }
+        .button-quiet { min-height: 38px; padding: 0 12px; border-color: var(--line); background: white; color: #40544e; font-size: .83rem; }
+        .workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding-bottom: 40px; }
+        .workspace.has-editor { grid-template-columns: minmax(310px, .82fr) minmax(0, 1.18fr); }
+        .panel { min-width: 0; border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: 0 8px 28px rgb(25 51 43 / 4%); }
+        .editor { padding: 22px; }
+        .editor[hidden] { display: none; }
+        .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+        h2 { margin: 0; font-size: 1.22rem; letter-spacing: -.025em; }
+        .panel-copy { margin: 7px 0 18px; color: var(--muted); font-size: .87rem; line-height: 1.5; }
+        .icon-button {
+            display: grid;
+            width: 36px;
+            height: 36px;
+            flex: 0 0 auto;
+            place-items: center;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: white;
+            color: #61736c;
+        }
+        .icon-button:hover { background: #f4f7f4; }
+        .scan-box {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            margin: 16px 0 20px;
+            padding: 13px;
+            border: 1px dashed #b8cec3;
+            border-radius: 12px;
+            background: #f8fbf8;
+        }
+        .scan-icon { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border-radius: 11px; background: #e3f0e9; color: var(--green); }
+        .scan-text { min-width: 0; flex: 1; }
+        .scan-text strong { display: block; font-size: .84rem; }
+        .scan-text small { display: block; margin-top: 4px; color: var(--muted); font-size: .75rem; line-height: 1.4; }
+        .scan-preview { display: none; width: 100%; max-height: 180px; margin-top: 12px; border-radius: 9px; object-fit: contain; background: #e8ece8; }
+        .scan-preview.visible { display: block; }
+        .scan-status { min-height: 18px; margin: 8px 0 0; color: var(--muted); font-size: .78rem; }
+        .scan-status[data-state="error"] { color: #aa3e39; }
+        .scan-status[data-state="active"] { color: var(--green); }
+        .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+        .field { display: block; min-width: 0; color: #3b5149; font-size: .81rem; font-weight: 700; }
+        .field.full { grid-column: 1 / -1; }
+        .field input, .search input {
+            width: 100%;
+            min-height: 44px;
+            margin-top: 7px;
+            padding: 0 12px;
+            border: 1px solid #dfe6df;
+            border-radius: 9px;
+            background: white;
+            color: #1d302d;
+        }
+        .field input::placeholder, .search input::placeholder { color: #a0aaa4; }
+        .form-error { min-height: 20px; margin: 9px 0 0; color: #aa3e39; font-size: .82rem; }
+        .form-actions { display: flex; gap: 9px; margin-top: 14px; }
+        .directory { padding: 22px; }
+        .directory-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+        .count { margin: 6px 0 0; color: var(--muted); font-size: .85rem; }
+        .search { position: relative; margin: 18px 0 14px; }
+        .search svg { position: absolute; top: 50%; left: 13px; color: #81918a; transform: translateY(-50%); pointer-events: none; }
+        .search input { min-height: 46px; margin: 0; padding-left: 41px; background: #fafbf9; }
+        .contact-list { display: grid; gap: 10px; }
+        .contact-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            padding: 15px;
+            border: 1px solid #e9ede8;
+            border-radius: 12px;
+            background: #fff;
+        }
+        .contact-card h3 { overflow-wrap: anywhere; margin: 0; font-size: .98rem; letter-spacing: -.015em; }
+        .company { overflow-wrap: anywhere; margin: 4px 0 0; color: var(--green); font-size: .85rem; font-weight: 650; }
+        .contact-meta { display: flex; flex-wrap: wrap; gap: 7px 16px; margin-top: 12px; color: #667770; font-size: .79rem; }
+        .contact-meta a { color: inherit; text-decoration: none; }
+        .contact-meta a:hover { color: var(--green); text-decoration: underline; }
+        .contact-actions { display: flex; align-items: flex-start; gap: 6px; }
+        .contact-actions button { width: 34px; height: 34px; }
+        .empty-state { padding: 36px 15px; border: 1px dashed #dce5dd; border-radius: 12px; color: var(--muted); text-align: center; }
+        .empty-state strong { display: block; margin-bottom: 6px; color: #354a42; font-size: .94rem; }
+        .error-state { padding: 15px; border-radius: 10px; background: #fff3f1; color: #963b35; font-size: .87rem; line-height: 1.5; }
+        .footer { padding: 0 0 28px; color: #84918b; font-size: .78rem; text-align: center; }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+
+        @media (max-width: 800px) {
+            .workspace.has-editor { grid-template-columns: minmax(0, 1fr); }
+            .editor { order: 0; }
+            .directory { order: 1; }
+        }
+        @media (max-width: 520px) {
+            .page { width: min(100% - 28px, 1160px); }
+            .topbar { min-height: 72px; }
+            .hero { padding: 34px 0 24px; }
+            .hero-copy { font-size: .96rem; }
+            .hero-actions { display: grid; grid-template-columns: 1fr 1fr; }
+            .hero-actions .button { padding: 0 10px; font-size: .83rem; }
+            .workspace { gap: 14px; }
+            .editor, .directory { padding: 17px; border-radius: 15px; }
+            .fields { grid-template-columns: 1fr; gap: 12px; }
+            .field.full { grid-column: auto; }
+            .scan-box { align-items: flex-start; flex-wrap: wrap; }
+            .scan-box .button { width: 100%; }
+            .contact-card { padding: 13px; }
+            .contact-meta { display: grid; gap: 7px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="topbar">
+            <a class="brand" href="#" aria-label="Ponto de Contacto, início">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="11" r="2" stroke="currentColor" stroke-width="1.8"/><path d="M6 16c.6-1.3 1.6-2 3-2s2.4.7 3 2m2-6h4m-4 3h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </span>
+                <span class="brand-name">Ponto de Contacto<span class="brand-caption">Agenda da sua empresa</span></span>
+            </a>
+        </header>
+
+        <main>
+            <section class="hero" aria-labelledby="page-title">
+                <p class="eyebrow">A sua rede, num só lugar</p>
+                <h1 id="page-title">Contactos organizados.<br>Relações mais próximas.</h1>
+                <p class="hero-copy">Guarde os contactos das reuniões e feiras, encontre-os em segundos e transforme cartões de visita em registos digitais.</p>
+                <div class="hero-actions">
+                    <button class="button button-primary" id="new-contact" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        Adicionar contacto
+                    </button>
+                    <button class="button button-secondary" id="scan-card" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3m0 8v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3M7 12h10m-5-5v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        Ler cartão de visita
+                    </button>
+                </div>
+            </section>
+
+            <div class="workspace" id="workspace">
+                <section class="panel editor" id="editor" aria-labelledby="editor-title" hidden>
+                    <div class="panel-heading">
+                        <div>
+                            <h2 id="editor-title">Novo contacto</h2>
+                            <p class="panel-copy">Preencha os dados ou leia um cartão para começar.</p>
+                        </div>
+                        <button class="icon-button" id="close-editor" type="button" aria-label="Fechar formulário">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
+                    <div class="scan-box">
+                        <span class="scan-icon" aria-hidden="true">
+                            <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3m0 8v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3M7 12h10m-5-5v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        </span>
+                        <div class="scan-text">
+                            <strong>Preencher com um cartão</strong>
+                            <small>A fotografia é analisada neste dispositivo.</small>
+                        </div>
+                        <button class="button button-quiet" id="choose-image" type="button">Escolher fotografia</button>
+                        <input class="sr-only" id="card-image" type="file" accept="image/*" capture="environment" aria-label="Fotografar ou escolher cartão de visita">
+                    </div>
+                    <img class="scan-preview" id="scan-preview" alt="Pré-visualização do cartão escolhido">
+                    <p class="scan-status" id="scan-status" role="status" aria-live="polite"></p>
+
+                    <form id="contact-form" novalidate>
+                        <div class="fields">
+                            <label class="field full" for="field-name">Nome *
+                                <input id="field-name" name="name" autocomplete="name" maxlength="255" required placeholder="Ex.: Ana Costa">
+                            </label>
+                            <label class="field full" for="field-company">Empresa
+                                <input id="field-company" name="company" autocomplete="organization" maxlength="255" placeholder="Ex.: Empresa, Lda.">
+                            </label>
+                            <label class="field" for="field-phone">Telefone
+                                <input id="field-phone" name="phone" type="tel" autocomplete="tel" maxlength="255" placeholder="+351 912 345 678">
+                            </label>
+                            <label class="field" for="field-email">E-mail
+                                <input id="field-email" name="email" type="email" autocomplete="email" maxlength="255" placeholder="ana@empresa.pt">
+                            </label>
+                        </div>
+                        <p class="form-error" id="form-error" role="alert"></p>
+                        <div class="form-actions">
+                            <button class="button button-primary" id="save-contact" type="submit">Guardar contacto</button>
+                            <button class="button button-secondary" id="cancel-edit" type="button">Cancelar</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="panel directory" aria-labelledby="directory-title">
+                    <div class="directory-head">
+                        <div>
+                            <h2 id="directory-title">Os seus contactos</h2>
+                            <p class="count" id="contact-count" aria-live="polite">A carregar contactos…</p>
+                        </div>
+                    </div>
+                    <label class="search">
+                        <span class="sr-only">Pesquisar por nome ou empresa</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        <input id="search" type="search" autocomplete="off" placeholder="Pesquisar por nome ou empresa">
+                    </label>
+                    <div class="contact-list" id="contact-list" aria-live="polite"></div>
+                </section>
+            </div>
+        </main>
+        <footer class="footer">Os dados dos contactos ficam guardados na base de dados da empresa. O OCR é processado no navegador.</footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+    <script>
+        const apiUrl = "api/contacts.php";
+        const workspace = document.querySelector("#workspace");
+        const editor = document.querySelector("#editor");
+        const editorTitle = document.querySelector("#editor-title");
+        const form = document.querySelector("#contact-form");
+        const nameInput = document.querySelector("#field-name");
+        const companyInput = document.querySelector("#field-company");
+        const phoneInput = document.querySelector("#field-phone");
+        const emailInput = document.querySelector("#field-email");
+        const saveButton = document.querySelector("#save-contact");
+        const formError = document.querySelector("#form-error");
+        const imageInput = document.querySelector("#card-image");
+        const scanPreview = document.querySelector("#scan-preview");
+        const scanStatus = document.querySelector("#scan-status");
+        const contactList = document.querySelector("#contact-list");
+        const contactCount = document.querySelector("#contact-count");
+        const searchInput = document.querySelector("#search");
+        let editingId = null;
+        let searchTimer = 0;
+        let requestNumber = 0;
+        let previewUrl = "";
+        let ocrWorker = null;
+
+        async function requestApi(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: { "Content-Type": "application/json", ...options.headers }
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.error || "Não foi possível concluir o pedido.");
+            }
+            return payload;
+        }
+
+        function showEditor({ editId = null, contact = null } = {}) {
+            editingId = editId;
+            editorTitle.textContent = editId === null ? "Novo contacto" : "Editar contacto";
+            saveButton.textContent = editId === null ? "Guardar contacto" : "Guardar alterações";
+            formError.textContent = "";
+            scanStatus.textContent = "";
+            scanStatus.dataset.state = "idle";
+            form.reset();
+            if (contact) {
+                nameInput.value = contact.name;
+                companyInput.value = contact.company;
+                phoneInput.value = contact.phone;
+                emailInput.value = contact.email;
+            }
+            editor.hidden = false;
+            workspace.classList.add("has-editor");
+            nameInput.focus();
+            if (window.matchMedia("(max-width: 800px)").matches) {
+                editor.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
+        function closeEditor() {
+            editor.hidden = true;
+            workspace.classList.remove("has-editor");
+            formError.textContent = "";
+            scanStatus.textContent = "";
+            imageInput.value = "";
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = "";
+            }
+            scanPreview.removeAttribute("src");
+            scanPreview.classList.remove("visible");
+        }
+
+        function makeActionButton(label, iconPath, handler) {
+            const button = document.createElement("button");
+            button.className = "icon-button";
+            button.type = "button";
+            button.setAttribute("aria-label", label);
+            button.title = label;
+            button.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">${iconPath}</svg>`;
+            button.addEventListener("click", handler);
+            return button;
+        }
+
+        function renderContacts(contacts) {
+            contactList.replaceChildren();
+            contactCount.textContent = contacts.length === 1 ? "1 contacto" : `${contacts.length} contactos`;
+
+            if (contacts.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "empty-state";
+                const title = document.createElement("strong");
+                title.textContent = searchInput.value.trim() ? "Não encontrámos resultados" : "Ainda não há contactos";
+                const description = document.createElement("span");
+                description.textContent = searchInput.value.trim()
+                    ? "Experimente pesquisar por outro nome ou empresa."
+                    : "Adicione um contacto ou leia o primeiro cartão de visita.";
+                empty.append(title, description);
+                contactList.append(empty);
+                return;
+            }
+
+            for (const contact of contacts) {
+                const card = document.createElement("article");
+                card.className = "contact-card";
+                const details = document.createElement("div");
+                const name = document.createElement("h3");
+                name.textContent = contact.name;
+                details.append(name);
+                if (contact.company) {
+                    const company = document.createElement("p");
+                    company.className = "company";
+                    company.textContent = contact.company;
+                    details.append(company);
+                }
+
+                const meta = document.createElement("div");
+                meta.className = "contact-meta";
+                if (contact.phone) {
+                    const phone = document.createElement("a");
+                    phone.href = `tel:${contact.phone.replace(/[^\d+]/g, "")}`;
+                    phone.textContent = contact.phone;
+                    meta.append(phone);
+                }
+                if (contact.email) {
+                    const email = document.createElement("a");
+                    email.href = `mailto:${contact.email}`;
+                    email.textContent = contact.email;
+                    meta.append(email);
+                }
+                if (meta.childElementCount) details.append(meta);
+
+                const actions = document.createElement("div");
+                actions.className = "contact-actions";
+                actions.append(
+                    makeActionButton(`Editar ${contact.name}`, '<path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', () => showEditor({ editId: contact.id, contact })),
+                    makeActionButton(`Eliminar ${contact.name}`, '<path d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', () => deleteContact(contact))
+                );
+                card.append(details, actions);
+                contactList.append(card);
+            }
+        }
+
+        async function loadContacts() {
+            const currentRequest = ++requestNumber;
+            const query = searchInput.value.trim();
+            const url = query ? `${apiUrl}?q=${encodeURIComponent(query)}` : apiUrl;
+            try {
+                const payload = await requestApi(url);
+                if (currentRequest === requestNumber) renderContacts(payload.contacts);
+            } catch (error) {
+                if (currentRequest !== requestNumber) return;
+                contactCount.textContent = "Não foi possível carregar";
+                const message = document.createElement("div");
+                message.className = "error-state";
+                message.textContent = `${error.message} Verifique se o servidor PHP está activo e tente novamente.`;
+                contactList.replaceChildren(message);
+            }
+        }
+
+        async function deleteContact(contact) {
+            if (!window.confirm(`Eliminar o contacto de ${contact.name}? Esta ação não pode ser anulada.`)) return;
+            try {
+                await requestApi(`${apiUrl}?id=${encodeURIComponent(contact.id)}`, { method: "DELETE" });
+                if (editingId === contact.id) closeEditor();
+                await loadContacts();
+            } catch (error) {
+                window.alert(error.message);
+            }
+        }
+
+        function extractFields(text) {
+            const lines = text.split(/\r?\n/).map((line) => line.replace(/[|•▪]/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean);
+            const email = (
+                text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
+                || text.match(/[A-Z0-9._%+-]+(?:\(Q|[Q©])[A-Z0-9.-]+\.[A-Z]{2,}/i)
+            )?.[0].replace(/\(Q|[Q©]/i, "@") || "";
+            const phone = (text.match(/(?:\+?\d[\d\s()./-]{6,}\d)/g) || [])
+                .find((value) => {
+                    const digits = value.replace(/\D/g, "").length;
+                    return digits >= 8 && digits <= 15;
+                })?.replace(/\s+/g, " ").trim() || "";
+            const companyWords = /\b(?:ltda|limitada|lda|inc\.?|llc|ltd\.?|corp\.?|corporation|company|gmbh|s\.?a\.?|sarl|unipessoal)\b/i;
+            const roleWords = /\b(?:ceo|cto|cfo|director|diretor|diretora|manager|gerente|presidente|sales|vendas|marketing|engineer|engenheiro|consultor|developer|designer)\b/i;
+            const candidates = lines.filter((line) => !/@|www\.|https?:\/\//i.test(line) && !/\d{7,}/.test(line) && !/^[\s\d()+./-]+$/.test(line));
+            const company = candidates.find((line) => companyWords.test(line))
+                || candidates.find((line) => line === line.toUpperCase() && line.length > 2 && line.split(/\s+/).length <= 6)
+                || "";
+            const name = candidates.find((line) => {
+                const count = line.split(/\s+/).length;
+                return count >= 2 && count <= 5 && !companyWords.test(line) && !roleWords.test(line) && line !== company && line !== line.toUpperCase();
+            }) || candidates.find((line) => {
+                const count = line.split(/\s+/).length;
+                return count >= 2 && count <= 5 && !companyWords.test(line) && !roleWords.test(line) && line !== company;
+            }) || "";
+            return { name, company, phone, email };
+        }
+
+        async function readCard(file) {
+            if (!file.type.startsWith("image/")) {
+                scanStatus.textContent = "Escolha um ficheiro de imagem para ler o cartão.";
+                scanStatus.dataset.state = "error";
+                return;
+            }
+            if (file.size > 12 * 1024 * 1024) {
+                scanStatus.textContent = "A imagem é demasiado grande. Escolha uma fotografia com menos de 12 MB.";
+                scanStatus.dataset.state = "error";
+                return;
+            }
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            previewUrl = URL.createObjectURL(file);
+            scanPreview.src = previewUrl;
+            scanPreview.classList.add("visible");
+            scanStatus.dataset.state = "active";
+            scanStatus.textContent = "A preparar o reconhecimento em português…";
+            document.querySelector("#choose-image").disabled = true;
+
+            try {
+                if (!window.Tesseract) {
+                    throw new Error("A biblioteca de OCR não foi carregada. Verifique a ligação à Internet e tente novamente.");
+                }
+                if (!ocrWorker) {
+                    ocrWorker = await window.Tesseract.createWorker("por", 1, {
+                        logger: (message) => {
+                            if (message.status === "recognizing text") {
+                                scanStatus.textContent = `A ler o cartão… ${Math.round(message.progress * 100)}%`;
+                            } else if (message.status === "loading language traineddata") {
+                                scanStatus.textContent = `A preparar o idioma português… ${Math.round(message.progress * 100)}%`;
+                            }
+                        }
+                    });
+                }
+                const result = await ocrWorker.recognize(file);
+                const extracted = extractFields(result.data.text);
+                if (extracted.name) nameInput.value = extracted.name;
+                if (extracted.company) companyInput.value = extracted.company;
+                if (extracted.phone) phoneInput.value = extracted.phone;
+                if (extracted.email) emailInput.value = extracted.email;
+                const filled = Object.values(extracted).filter(Boolean).length;
+                scanStatus.textContent = filled
+                    ? `${filled} campo(s) preenchido(s). Confirme e corrija os dados antes de guardar.`
+                    : "Não foi possível identificar os campos. Preencha-os manualmente e tente uma fotografia mais nítida.";
+                scanStatus.dataset.state = "active";
+                if (extracted.email && !emailInput.validity.valid) {
+                    scanStatus.textContent += " Verifique o endereço de e-mail.";
+                }
+            } catch (error) {
+                scanStatus.textContent = error.message || "Não foi possível ler esta imagem.";
+                scanStatus.dataset.state = "error";
+            } finally {
+                document.querySelector("#choose-image").disabled = false;
+            }
+        }
+
+        document.querySelector("#new-contact").addEventListener("click", () => showEditor());
+        document.querySelector("#scan-card").addEventListener("click", () => {
+            showEditor();
+            imageInput.click();
+        });
+        document.querySelector("#choose-image").addEventListener("click", () => imageInput.click());
+        imageInput.addEventListener("change", () => {
+            const [file] = imageInput.files;
+            if (file) readCard(file);
+        });
+        document.querySelector("#close-editor").addEventListener("click", closeEditor);
+        document.querySelector("#cancel-edit").addEventListener("click", closeEditor);
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            formError.textContent = "";
+            if (!nameInput.value.trim()) {
+                formError.textContent = "O nome é obrigatório.";
+                nameInput.focus();
+                return;
+            }
+            if (!form.reportValidity()) return;
+
+            const contact = {
+                name: nameInput.value.trim(),
+                company: companyInput.value.trim(),
+                phone: phoneInput.value.trim(),
+                email: emailInput.value.trim()
+            };
+            saveButton.disabled = true;
+            saveButton.textContent = "A guardar…";
+            try {
+                const url = editingId === null ? apiUrl : `${apiUrl}?id=${encodeURIComponent(editingId)}`;
+                await requestApi(url, { method: editingId === null ? "POST" : "PUT", body: JSON.stringify(contact) });
+                closeEditor();
+                searchInput.value = "";
+                await loadContacts();
+            } catch (error) {
+                formError.textContent = error.message;
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = editingId === null ? "Guardar contacto" : "Guardar alterações";
+            }
+        });
+
+        searchInput.addEventListener("input", () => {
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(loadContacts, 180);
+        });
+        window.addEventListener("pagehide", () => {
+            if (ocrWorker) ocrWorker.terminate();
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+        });
+        loadContacts();
+    </script>
+</body>
+</html>
