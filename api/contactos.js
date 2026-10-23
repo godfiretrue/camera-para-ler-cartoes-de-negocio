@@ -10,12 +10,24 @@ function getSupabaseConfig() {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const password = process.env.APP_ACCESS_PASSWORD;
+    const missingVariables = [
+        ["SUPABASE_URL", url],
+        ["SUPABASE_SERVICE_ROLE_KEY", key],
+        ["APP_ACCESS_PASSWORD", password]
+    ]
+        .filter(([, value]) => typeof value !== "string" || value.trim() === "")
+        .map(([name]) => name);
 
-    if (!url || !key || !password) {
-        throw new Error("Missing Vercel environment configuration.");
+    if (missingVariables.length > 0) {
+        throw new Error(`Vercel runtime is missing environment variable(s): ${missingVariables.join(", ")}.`);
     }
 
-    const parsedUrl = new URL(url);
+    let parsedUrl;
+    try {
+        parsedUrl = new URL(url);
+    } catch {
+        throw new Error("SUPABASE_URL is not a valid HTTPS project URL.");
+    }
     if (parsedUrl.protocol !== "https:") {
         throw new Error("SUPABASE_URL must use HTTPS.");
     }
@@ -94,7 +106,7 @@ module.exports = async function handler(req, res) {
         config = getSupabaseConfig();
     } catch (error) {
         console.error(error.message);
-        return sendJson(res, 500, { error: "Configure SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e APP_ACCESS_PASSWORD nas variáveis de ambiente da Vercel." });
+        return sendJson(res, 500, { error: error.message });
     }
 
     const suppliedPassword = req.headers["x-app-password"];
