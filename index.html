@@ -113,6 +113,9 @@
         .scan-text { min-width: 0; flex: 1; }
         .scan-text strong { display: block; font-size: .84rem; }
         .scan-text small { display: block; margin-top: 4px; color: var(--muted); font-size: .75rem; line-height: 1.4; }
+        .camera-capture[hidden] { display: none; }
+        .camera-video { display: block; width: 100%; max-height: 360px; border-radius: 10px; background: #17211d; object-fit: contain; }
+        .camera-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .scan-preview { display: none; width: 100%; max-height: 180px; margin-top: 12px; border-radius: 9px; object-fit: contain; background: #e8ece8; }
         .scan-preview.visible { display: block; }
         .scan-status { min-height: 18px; margin: 8px 0 0; color: var(--muted); font-size: .78rem; }
@@ -239,6 +242,13 @@
                         <button class="button button-quiet" id="choose-image" type="button">Escolher fotografia</button>
                         <input class="sr-only" id="card-image" type="file" accept="image/*" capture="environment" aria-label="Fotografar ou escolher cartão de visita">
                     </div>
+                    <div class="camera-capture" id="camera-capture" hidden>
+                        <video class="camera-video" id="camera-video" autoplay playsinline muted aria-label="Pré-visualização da câmara"></video>
+                        <div class="camera-actions">
+                            <button class="button button-primary" id="take-photo" type="button">Tirar fotografia</button>
+                            <button class="button button-secondary" id="close-camera" type="button">Fechar câmara</button>
+                        </div>
+                    </div>
                     <img class="scan-preview" id="scan-preview" alt="Pré-visualização do cartão escolhido">
                     <p class="scan-status" id="scan-status" role="status" aria-live="polite"></p>
 
@@ -300,6 +310,8 @@
         const saveButton = document.querySelector("#save-contact");
         const formError = document.querySelector("#form-error");
         const imageInput = document.querySelector("#card-image");
+        const cameraCapture = document.querySelector("#camera-capture");
+        const cameraVideo = document.querySelector("#camera-video");
         const scanPreview = document.querySelector("#scan-preview");
         const scanStatus = document.querySelector("#scan-status");
         const contactList = document.querySelector("#contact-list");
@@ -309,6 +321,8 @@
         let searchTimer = 0;
         let requestNumber = 0;
         let previewUrl = "";
+        let cameraStream = null;
+        let cameraRequestNumber = 0;
         let ocrWorker = null;
         let apiPassword = "";
 
@@ -354,6 +368,7 @@
         }
 
         function showEditor({ editId = null, contact = null } = {}) {
+            closeCamera();
             editingId = editId;
             editorTitle.textContent = editId === null ? "Novo contacto" : "Editar contacto";
             saveButton.textContent = editId === null ? "Guardar contacto" : "Guardar alterações";
@@ -376,6 +391,7 @@
         }
 
         function closeEditor() {
+            closeCamera();
             editor.hidden = true;
             workspace.classList.remove("has-editor");
             formError.textContent = "";
@@ -387,6 +403,70 @@
             }
             scanPreview.removeAttribute("src");
             scanPreview.classList.remove("visible");
+        }
+
+        function closeCamera() {
+            cameraRequestNumber++;
+            if (cameraStream) {
+                cameraStream.getTracks().forEach((track) => track.stop());
+                cameraStream = null;
+            }
+            cameraVideo.srcObject = null;
+            cameraCapture.hidden = true;
+        }
+
+        async function openCamera() {
+            closeCamera();
+            if (!navigator.mediaDevices?.getUserMedia) {
+                scanStatus.textContent = "A câmara não está disponível. Abra a aplicação por HTTPS ou escolha uma fotografia.";
+                scanStatus.dataset.state = "error";
+                return;
+            }
+
+            const cameraRequest = cameraRequestNumber;
+            cameraCapture.hidden = false;
+            scanStatus.textContent = "A aguardar autorização para utilizar a câmara…";
+            scanStatus.dataset.state = "active";
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+                if (cameraRequest !== cameraRequestNumber) {
+                    stream.getTracks().forEach((track) => track.stop());
+                    return;
+                }
+                cameraStream = stream;
+                cameraVideo.srcObject = stream;
+                await cameraVideo.play();
+                scanStatus.textContent = "Posicione o cartão e tire uma fotografia.";
+            } catch (error) {
+                if (cameraRequest !== cameraRequestNumber) return;
+                closeCamera();
+                scanStatus.textContent = error.name === "NotAllowedError"
+                    ? "O acesso à câmara foi bloqueado. Permita a câmara nas definições do navegador ou escolha uma fotografia."
+                    : error.name === "NotFoundError"
+                        ? "Não foi encontrada uma câmara neste computador. Escolha uma fotografia."
+                        : "Não foi possível abrir a câmara. Verifique as permissões do navegador ou escolha uma fotografia.";
+                scanStatus.dataset.state = "error";
+            }
+        }
+
+        async function capturePhoto() {
+            if (!cameraStream || !cameraVideo.videoWidth || !cameraVideo.videoHeight) {
+                scanStatus.textContent = "A câmara ainda está a iniciar. Tente novamente.";
+                scanStatus.dataset.state = "error";
+                return;
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = cameraVideo.videoWidth;
+            canvas.height = cameraVideo.videoHeight;
+            canvas.getContext("2d").drawImage(cameraVideo, 0, 0);
+            const photo = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+            if (!photo) {
+                scanStatus.textContent = "Não foi possível capturar a fotografia. Tente novamente.";
+                scanStatus.dataset.state = "error";
+                return;
+            }
+            closeCamera();
+            await readCard(new File([photo], "cartao-visita.jpg", { type: "image/jpeg" }));
         }
 
         function makeActionButton(label, iconPath, handler) {
@@ -573,13 +653,20 @@
         document.querySelector("#new-contact").addEventListener("click", () => showEditor());
         document.querySelector("#scan-card").addEventListener("click", () => {
             showEditor();
-            imageInput.click();
+            const isMobile = navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+            if (isMobile) imageInput.click();
+            else openCamera();
         });
         document.querySelector("#choose-image").addEventListener("click", () => imageInput.click());
+        document.querySelector("#take-photo").addEventListener("click", capturePhoto);
+        document.querySelector("#close-camera").addEventListener("click", closeCamera);
         imageInput.addEventListener("change", () => {
             const file = imageInput.files?.[0];
             imageInput.value = "";
-            if (file) readCard(file);
+            if (file) {
+                closeCamera();
+                readCard(file);
+            }
         });
         document.querySelector("#close-editor").addEventListener("click", closeEditor);
         document.querySelector("#cancel-edit").addEventListener("click", closeEditor);

@@ -23,7 +23,7 @@ Com XAMPP, use `http://localhost/PHP/contractos/`. Em `localhost`/`127.0.0.1`, a
 
 ## Ler cartões de visita no telemóvel
 
-Na aplicação publicada, escolha **Ler cartão de visita** e fotografe o cartão ou selecione uma imagem. O OCR em português é executado no navegador com Tesseract.js; a imagem não é enviada para a API nem guardada. É necessária ligação à Internet para carregar a biblioteca e os dados de idioma. Os campos preenchidos automaticamente devem ser revistos antes de guardar.
+Na aplicação publicada, escolha **Ler cartão de visita**. Em computadores, a aplicação abre a câmara do navegador; em telemóveis, pode fotografar ou escolher uma imagem. Também pode escolher uma fotografia manualmente. O acesso à câmara requer autorização do navegador e uma origem segura (HTTPS ou `localhost`). O OCR em português é executado no navegador com Tesseract.js; a imagem não é enviada para a API nem guardada. É necessária ligação à Internet para carregar a biblioteca e os dados de idioma. Os campos preenchidos automaticamente devem ser revistos antes de guardar.
 
 O acesso à câmara do telemóvel depende do suporte do navegador e, normalmente, de uma ligação HTTPS. Também é possível selecionar uma fotografia já existente.
 
