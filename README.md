@@ -21,6 +21,12 @@ Na Vercel, cada variável tem de estar marcada para o ambiente do deployment (Pr
 
 Com XAMPP, use `http://localhost/PHP/contractos/`. Em `localhost`/`127.0.0.1`, a aplicação utiliza `local-api/contacts.php` com SQLite. Não é necessário definir as variáveis Supabase para desenvolvimento local.
 
+## Ler cartões de visita no telemóvel
+
+Na aplicação publicada, escolha **Ler cartão de visita** e fotografe o cartão ou selecione uma imagem. O OCR em português é executado no navegador com Tesseract.js; a imagem não é enviada para a API nem guardada. É necessária ligação à Internet para carregar a biblioteca e os dados de idioma. Os campos preenchidos automaticamente devem ser revistos antes de guardar.
+
+O acesso à câmara do telemóvel depende do suporte do navegador e, normalmente, de uma ligação HTTPS. Também é possível selecionar uma fotografia já existente.
+
 ## Se aparecer um erro na aplicação publicada
 
 Confirme que o deployment mais recente está ativo, que executou o SQL no mesmo projeto cujo URL configurou e que as três variáveis Vercel estão definidas no ambiente correto (Production/Preview). Abra os logs da função `api/contactos` na Vercel; o código de erro Supabase também será apresentado pela aplicação. Não publique valores das chaves ou palavras-passe ao pedir ajuda.
