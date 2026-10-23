@@ -15,6 +15,8 @@ Configure estas variáveis de ambiente no projeto Vercel:
 
 Depois de configurar as variáveis, faça um novo deployment. A função serverless em `api/contactos.js` acede ao Supabase pela API REST na rota `/api/contactos`; não requer PHP nem PDO na Vercel. O nome `contactos` evita conflito de rota com `contacts.php`. A interface pede a palavra-passe na primeira chamada à API. A chave Supabase nunca é enviada ao navegador.
 
+Na Vercel, cada variável tem de estar marcada para o ambiente do deployment (Production, Preview ou Development). Adicionar ou alterar variáveis não atualiza deployments já criados: volte a fazer deploy após guardar as variáveis. Se a API indicar variáveis em falta, confira os nomes exatos acima no ambiente correspondente; a função não revela os respetivos valores.
+
 ## Execução local
 
 Com XAMPP, use `http://localhost/PHP/contractos/`. Em `localhost`/`127.0.0.1`, a aplicação utiliza `local-api/contacts.php` com SQLite. Não é necessário definir as variáveis Supabase para desenvolvimento local.
