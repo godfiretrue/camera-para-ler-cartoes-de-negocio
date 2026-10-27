@@ -4,6 +4,8 @@ declare(strict_types=1);
 // Local SQLite/PDO endpoint; Vercel uses the serverless handler in /api.
 header('Content-Type: application/json; charset=utf-8');
 
+const CONTACT_TYPES = ['Potencial Cliente', 'Cliente', 'Fornecedor'];
+
 function respond(int $status, array $payload): never
 {
     http_response_code($status);
@@ -30,6 +32,12 @@ function readContact(): array
             respond(422, ['error' => 'Cada campo pode ter no máximo 255 caracteres.']);
         }
     }
+
+    $type = $payload['type'] ?? 'Potencial Cliente';
+    if (!is_string($type) || !in_array($type, CONTACT_TYPES, true)) {
+        respond(422, ['error' => 'Selecione um tipo de contacto válido.']);
+    }
+    $contact['type'] = $type;
 
     if ($contact['name'] === '') {
         respond(422, ['error' => 'O nome é obrigatório.']);
@@ -97,10 +105,15 @@ try {
                 company TEXT NOT NULL DEFAULT '',
                 phone TEXT NOT NULL DEFAULT '',
                 email TEXT NOT NULL DEFAULT '',
+                type TEXT NOT NULL DEFAULT 'Potencial Cliente',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )"
         );
+        $columns = $database->query('PRAGMA table_info(contacts)')->fetchAll();
+        if (!in_array('type', array_column($columns, 'name'), true)) {
+            $database->exec("ALTER TABLE contacts ADD COLUMN type TEXT NOT NULL DEFAULT 'Potencial Cliente'");
+        }
     }
 } catch (Throwable $error) {
     error_log('Contact database initialization failed: ' . $error->getMessage());
@@ -112,26 +125,35 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 try {
     if ($method === 'GET') {
         $search = trim((string) ($_GET['q'] ?? ''));
-        $searchOperator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
-        if ($search === '') {
-            $statement = $database->query('SELECT id, name, company, phone, email FROM contacts ORDER BY LOWER(name), id DESC');
-        } else {
-            $statement = $database->prepare(
-                "SELECT id, name, company, phone, email
-                 FROM contacts
-                 WHERE name {$searchOperator} :name_search OR company {$searchOperator} :company_search
-                 ORDER BY LOWER(name), id DESC"
-            );
-            $pattern = '%' . $search . '%';
-            $statement->execute(['name_search' => $pattern, 'company_search' => $pattern]);
+        $type = $_GET['type'] ?? '';
+        if (!is_string($type) || ($type !== '' && !in_array($type, CONTACT_TYPES, true))) {
+            respond(400, ['error' => 'Tipo de contacto inválido.']);
         }
+        $searchOperator = $driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+        $conditions = [];
+        $parameters = [];
+        if ($search !== '') {
+            $conditions[] = "(name {$searchOperator} :name_search OR company {$searchOperator} :company_search)";
+            $pattern = '%' . $search . '%';
+            $parameters['name_search'] = $pattern;
+            $parameters['company_search'] = $pattern;
+        }
+        if ($type !== '') {
+            $conditions[] = 'type = :type';
+            $parameters['type'] = $type;
+        }
+        $where = $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
+        $statement = $database->prepare(
+            "SELECT id, name, company, phone, email, type FROM contacts{$where} ORDER BY LOWER(name), id DESC"
+        );
+        $statement->execute($parameters);
 
         respond(200, ['contacts' => $statement->fetchAll()]);
     }
 
     if ($method === 'POST') {
         $contact = readContact();
-        $insertSql = 'INSERT INTO contacts (name, company, phone, email) VALUES (:name, :company, :phone, :email)';
+        $insertSql = 'INSERT INTO contacts (name, company, phone, email, type) VALUES (:name, :company, :phone, :email, :type)';
         if ($driver === 'pgsql') {
             $insertSql .= ' RETURNING id';
         }
@@ -151,7 +173,7 @@ try {
         $contact['id'] = $id;
         $statement = $database->prepare(
             'UPDATE contacts
-             SET name = :name, company = :company, phone = :phone, email = :email, updated_at = CURRENT_TIMESTAMP
+             SET name = :name, company = :company, phone = :phone, email = :email, type = :type, updated_at = CURRENT_TIMESTAMP
              WHERE id = :id'
         );
         $statement->execute($contact);

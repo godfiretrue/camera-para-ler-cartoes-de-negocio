@@ -1,6 +1,7 @@
 const { timingSafeEqual } = require("node:crypto");
 
-const selectedColumns = "id,name,company,phone,email";
+const selectedColumns = "id,name,company,phone,email,type";
+const contactTypes = ["Potencial Cliente", "Cliente", "Fornecedor"];
 
 function sendJson(res, status, payload) {
     res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(payload));
@@ -57,6 +58,12 @@ function parseContact(body) {
             return { error: "Cada campo pode ter no máximo 255 caracteres." };
         }
     }
+
+    const type = body.type ?? "Potencial Cliente";
+    if (typeof type !== "string" || !contactTypes.includes(type)) {
+        return { error: "Selecione um tipo de contacto válido." };
+    }
+    contact.type = type;
 
     if (!contact.name) {
         return { error: "O nome é obrigatório." };
@@ -118,6 +125,11 @@ module.exports = async function handler(req, res) {
         if (req.method === "GET") {
             const search = typeof req.query.q === "string" ? req.query.q.trim() : "";
             const params = new URLSearchParams({ select: selectedColumns, order: "name.asc,id.desc", limit: "1000" });
+            const type = typeof req.query.type === "string" ? req.query.type : "";
+            if (type && !contactTypes.includes(type)) {
+                return sendJson(res, 400, { error: "Tipo de contacto inválido." });
+            }
+            if (type) params.set("type", `eq.${type}`);
             const escapedSearch = search.replace(/[\\%_*]/g, "\\$&");
 
             if (!search) {

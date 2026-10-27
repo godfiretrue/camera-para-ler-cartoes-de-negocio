@@ -124,7 +124,7 @@
         .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
         .field { display: block; min-width: 0; color: #3b5149; font-size: .81rem; font-weight: 700; }
         .field.full { grid-column: 1 / -1; }
-        .field input, .search input {
+        .field input, .field select, .search input, .type-filter select {
             width: 100%;
             min-height: 44px;
             margin-top: 7px;
@@ -143,6 +143,10 @@
         .search { position: relative; margin: 18px 0 14px; }
         .search svg { position: absolute; top: 50%; left: 13px; color: #81918a; transform: translateY(-50%); pointer-events: none; }
         .search input { min-height: 46px; margin: 0; padding-left: 41px; background: #fafbf9; }
+        .directory-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, .55fr); gap: 10px; margin: 18px 0 14px; }
+        .directory-filters .search { margin: 0; }
+        .type-filter { display: block; color: #3b5149; font-size: .81rem; font-weight: 700; }
+        .type-filter select { min-height: 46px; margin: 0; background: #fafbf9; }
         .contact-list { display: grid; gap: 10px; }
         .contact-card {
             display: grid;
@@ -155,6 +159,7 @@
         }
         .contact-card h3 { overflow-wrap: anywhere; margin: 0; font-size: .98rem; letter-spacing: -.015em; }
         .company { overflow-wrap: anywhere; margin: 4px 0 0; color: var(--green); font-size: .85rem; font-weight: 650; }
+        .contact-type { display: inline-block; margin-top: 8px; padding: 4px 8px; border-radius: 999px; background: #edf4ef; color: #315b48; font-size: .72rem; font-weight: 700; }
         .contact-meta { display: flex; flex-wrap: wrap; gap: 7px 16px; margin-top: 12px; color: #667770; font-size: .79rem; }
         .contact-meta a { color: inherit; text-decoration: none; }
         .contact-meta a:hover { color: var(--green); text-decoration: underline; }
@@ -182,6 +187,7 @@
             .editor, .directory { padding: 17px; border-radius: 15px; }
             .fields { grid-template-columns: 1fr; gap: 12px; }
             .field.full { grid-column: auto; }
+            .directory-filters { grid-template-columns: 1fr; }
             .scan-box { align-items: flex-start; flex-wrap: wrap; }
             .scan-box .button { width: 100%; }
             .contact-card { padding: 13px; }
@@ -237,7 +243,7 @@
                         </span>
                         <div class="scan-text">
                             <strong>Preencher com um cartão</strong>
-                            <small>A fotografia é analisada neste dispositivo.</small>
+                            <small>Preenche apenas nome, empresa, telefone e e-mail reconhecidos. Campos incertos ficam em branco para confirmar manualmente.</small>
                         </div>
                         <button class="button button-quiet" id="choose-image" type="button">Escolher fotografia</button>
                         <input class="sr-only" id="card-image" type="file" accept="image/*" capture="environment" aria-label="Fotografar ou escolher cartão de visita">
@@ -266,6 +272,13 @@
                             <label class="field" for="field-email">E-mail
                                 <input id="field-email" name="email" type="email" autocomplete="email" maxlength="255" placeholder="ana@empresa.pt">
                             </label>
+                            <label class="field full" for="field-type">Tipo de contacto
+                                <select id="field-type" name="type" required>
+                                    <option value="Potencial Cliente">Potencial Cliente</option>
+                                    <option value="Cliente">Cliente</option>
+                                    <option value="Fornecedor">Fornecedor</option>
+                                </select>
+                            </label>
                         </div>
                         <p class="form-error" id="form-error" role="alert"></p>
                         <div class="form-actions">
@@ -282,11 +295,21 @@
                             <p class="count" id="contact-count" aria-live="polite">A carregar contactos…</p>
                         </div>
                     </div>
-                    <label class="search">
-                        <span class="sr-only">Pesquisar por nome ou empresa</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                        <input id="search" type="search" autocomplete="off" placeholder="Pesquisar por nome ou empresa">
-                    </label>
+                    <div class="directory-filters">
+                        <label class="search">
+                            <span class="sr-only">Pesquisar por nome ou empresa</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                            <input id="search" type="search" autocomplete="off" placeholder="Pesquisar por nome ou empresa">
+                        </label>
+                        <label class="type-filter" for="type-filter">Filtrar por tipo
+                            <select id="type-filter">
+                                <option value="">Todos os tipos</option>
+                                <option value="Potencial Cliente">Potencial Cliente</option>
+                                <option value="Cliente">Cliente</option>
+                                <option value="Fornecedor">Fornecedor</option>
+                            </select>
+                        </label>
+                    </div>
                     <div class="contact-list" id="contact-list" aria-live="polite"></div>
                 </section>
             </div>
@@ -307,6 +330,7 @@
         const companyInput = document.querySelector("#field-company");
         const phoneInput = document.querySelector("#field-phone");
         const emailInput = document.querySelector("#field-email");
+        const typeInput = document.querySelector("#field-type");
         const saveButton = document.querySelector("#save-contact");
         const formError = document.querySelector("#form-error");
         const imageInput = document.querySelector("#card-image");
@@ -381,6 +405,7 @@
                 companyInput.value = contact.company;
                 phoneInput.value = contact.phone;
                 emailInput.value = contact.email;
+                typeInput.value = contact.type || "Potencial Cliente";
             }
             editor.hidden = false;
             workspace.classList.add("has-editor");
@@ -488,10 +513,11 @@
                 const empty = document.createElement("div");
                 empty.className = "empty-state";
                 const title = document.createElement("strong");
-                title.textContent = searchInput.value.trim() ? "Não encontrámos resultados" : "Ainda não há contactos";
+                const hasFilters = searchInput.value.trim() || document.querySelector("#type-filter").value;
+                title.textContent = hasFilters ? "Não encontrámos resultados" : "Ainda não há contactos";
                 const description = document.createElement("span");
-                description.textContent = searchInput.value.trim()
-                    ? "Experimente pesquisar por outro nome ou empresa."
+                description.textContent = hasFilters
+                    ? "Altere a pesquisa ou o tipo de contacto selecionado."
                     : "Adicione um contacto ou leia o primeiro cartão de visita.";
                 empty.append(title, description);
                 contactList.append(empty);
@@ -511,6 +537,10 @@
                     company.textContent = contact.company;
                     details.append(company);
                 }
+                const type = document.createElement("span");
+                type.className = "contact-type";
+                type.textContent = contact.type || "Potencial Cliente";
+                details.append(type);
 
                 const meta = document.createElement("div");
                 meta.className = "contact-meta";
@@ -542,7 +572,12 @@
         async function loadContacts() {
             const currentRequest = ++requestNumber;
             const query = searchInput.value.trim();
-            const url = query ? `${apiUrl}?q=${encodeURIComponent(query)}` : apiUrl;
+            const params = new URLSearchParams();
+            if (query) params.set("q", query);
+            const selectedType = document.querySelector("#type-filter").value;
+            if (selectedType) params.set("type", selectedType);
+            const queryString = params.toString();
+            const url = queryString ? `${apiUrl}?${queryString}` : apiUrl;
             try {
                 const payload = await requestApi(url);
                 if (currentRequest === requestNumber) renderContacts(payload.contacts);
@@ -578,10 +613,16 @@
                     const digits = value.replace(/\D/g, "").length;
                     return digits >= 8 && digits <= 15;
                 })?.replace(/\s+/g, " ").trim() || "";
-            const companyWords = /\b(?:ltda|limitada|lda|inc\.?|llc|ltd\.?|corp\.?|corporation|company|gmbh|s\.?a\.?|sarl|unipessoal)\b/i;
-            const roleWords = /\b(?:ceo|cto|cfo|director|diretor|diretora|manager|gerente|presidente|sales|vendas|marketing|engineer|engenheiro|consultor|developer|designer)\b/i;
-            const candidates = lines.filter((line) => !/@|www\.|https?:\/\//i.test(line) && !/\d{7,}/.test(line) && !/^[\s\d()+./-]+$/.test(line));
-            const company = candidates.find((line) => companyWords.test(line))
+            const companyWords = /\b(?:ltda|limitada|lda|inc\.?|llc|ltd\.?|corp\.?|corporation|company|gmbh|s\.?a\.?|sarl|unipessoal|grupo|group|solutions|soluções|consulting|consultoria|technologies|technology|tecnologia|services|serviços|industries|studio|agency|banco|hotel|universidade)\b/i;
+            const roleWords = /\b(?:ceo|cto|cfo|director|diretor|diretora|manager|gerente|presidente|sales|vendas|marketing|engineer|engenheiro|consultor|developer|designer|accountant|advogado|advogada|arquiteto|arquiteta)\b/i;
+            const addressWords = /\b(?:rua|avenida|av\.|travessa|largo|praça|praca|estrada|street|road|suite|piso|andar|código postal|codigo postal|postal code)\b/i;
+            const candidates = lines.filter((line) =>
+                !/@|www\.|https?:\/\//i.test(line)
+                && !/\d/.test(line)
+                && /^[\p{L}][\p{L}\p{M}\s.'’&-]*$/u.test(line)
+                && !addressWords.test(line)
+            );
+            const company = candidates.find((line) => companyWords.test(line) && line.split(/\s+/).length <= 8)
                 || candidates.find((line) => line === line.toUpperCase() && line.length > 2 && line.split(/\s+/).length <= 6)
                 || "";
             const name = candidates.find((line) => {
@@ -685,7 +726,8 @@
                 name: nameInput.value.trim(),
                 company: companyInput.value.trim(),
                 phone: phoneInput.value.trim(),
-                email: emailInput.value.trim()
+                email: emailInput.value.trim(),
+                type: typeInput.value
             };
             saveButton.disabled = true;
             saveButton.textContent = "A guardar…";
@@ -707,6 +749,7 @@
             window.clearTimeout(searchTimer);
             searchTimer = window.setTimeout(loadContacts, 180);
         });
+        document.querySelector("#type-filter").addEventListener("change", loadContacts);
         window.addEventListener("pagehide", () => {
             if (ocrWorker) ocrWorker.terminate();
             if (previewUrl) URL.revokeObjectURL(previewUrl);

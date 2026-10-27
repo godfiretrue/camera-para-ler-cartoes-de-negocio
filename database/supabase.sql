@@ -4,9 +4,15 @@ CREATE TABLE IF NOT EXISTS public.contacts (
     company varchar(255) NOT NULL DEFAULT '',
     phone varchar(255) NOT NULL DEFAULT '',
     email varchar(255) NOT NULL DEFAULT '',
+    type varchar(32) NOT NULL DEFAULT 'Potencial Cliente'
+        CHECK (type IN ('Potencial Cliente', 'Cliente', 'Fornecedor')),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.contacts
+    ADD COLUMN IF NOT EXISTS type varchar(32) NOT NULL DEFAULT 'Potencial Cliente'
+        CHECK (type IN ('Potencial Cliente', 'Cliente', 'Fornecedor'));
 
 CREATE INDEX IF NOT EXISTS contacts_name_sort_idx
     ON public.contacts (lower(name), id DESC);
