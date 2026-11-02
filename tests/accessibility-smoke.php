@@ -30,11 +30,16 @@ $check('A lista tem um destino programático para devolver o foco', $xpath->quer
 $check('Ações dos contactos têm texto visível criado como texto', str_contains($html, 'text.textContent = visibleLabel;'));
 $check('Campos inválidos expõem erro associado e estado inválido', str_contains($html, 'input.setAttribute("aria-invalid", "true")'));
 $check('Ações principais mantêm-se numa coluna em ecrãs estreitos', str_contains($html, '.hero-actions .button { width: 100%;'));
-$check('A leitura de cartões usa Tesseract.js e valida a confiança do OCR', str_contains($html, 'Tesseract.createWorker("por"')
-    && str_contains($html, 'ocrWorker.recognize(preparedImage)')
+$check('A leitura de cartões usa Tesseract.js em quatro passagens', str_contains($html, 'Tesseract.createWorker("por"')
+    && str_contains($html, 'ocrWorker.recognize(preparedImages[imageIndex])')
+    && str_contains($html, 'passResults.length + 1')
     && str_contains($html, 'confidence >= 60'));
-$check('A fotografia é preparada no navegador antes do OCR', str_contains($html, 'prepareCardImage(file)')
-    && str_contains($html, 'context.getImageData'));
+$check('A fotografia é preparada em versões com contraste e limiarização', str_contains($html, 'prepareCardImages(file)')
+    && str_contains($html, 'context.getImageData')
+    && str_contains($html, 'maxVariance'));
+$check('A seleção de campos considera resultados repetidos entre passagens', str_contains($html, 'function combineRecognizedFields(results)')
+    && str_contains($html, 'candidate.support++')
+    && str_contains($html, 'Math.min(15, (second.support - 1) * 5)'));
 $check('A câmara prefere a resolução elevada e a câmara traseira', str_contains($html, 'width: { ideal: 1920 }')
     && str_contains($html, 'facingMode: { ideal: "environment" }'));
 

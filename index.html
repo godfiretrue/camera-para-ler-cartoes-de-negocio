@@ -253,7 +253,7 @@
                         </span>
                         <div class="scan-text">
                             <strong>Preencher com um cartão</strong>
-                            <small>Preenche apenas nome, empresa, telefone e e-mail reconhecidos. Campos incertos ficam em branco para confirmar manualmente.</small>
+                            <small>Para melhores resultados, enquadre o cartão inteiro, de perto, direito e com boa luz, sem reflexos. Campos incertos ficam em branco para confirmar manualmente.</small>
                         </div>
                         <button class="button button-quiet" id="choose-image" type="button">Escolher fotografia</button>
                         <input id="card-image" type="file" accept="image/*" capture="environment" aria-label="Fotografar ou escolher cartão de visita" hidden>
@@ -547,7 +547,7 @@
             await readCard(new File([photo], "cartao-visita.jpg", { type: "image/jpeg" }));
         }
 
-        async function prepareCardImage(file) {
+        async function prepareCardImages(file) {
             const image = await createImageBitmap(file);
             try {
                 const maxDimension = Math.max(image.width, image.height);
@@ -571,13 +571,48 @@
                 }
                 context.putImageData(pixels, 0, 0);
 
-                const preparedImage = await new Promise((resolve, reject) => {
+                const toPngBlob = () => new Promise((resolve, reject) => {
                     canvas.toBlob((blob) => {
                         if (blob) resolve(blob);
                         else reject(new Error("Não foi possível preparar a imagem para o reconhecimento."));
                     }, "image/png");
                 });
-                return preparedImage;
+                const contrastImage = await toPngBlob();
+                const histogram = new Uint32Array(256);
+                for (let index = 0; index < pixels.data.length; index += 4) {
+                    histogram[pixels.data[index]]++;
+                }
+                const pixelCount = pixels.data.length / 4;
+                let totalBrightness = 0;
+                for (let value = 0; value < histogram.length; value++) {
+                    totalBrightness += value * histogram[value];
+                }
+                let backgroundCount = 0;
+                let backgroundBrightness = 0;
+                let maxVariance = -1;
+                let threshold = 128;
+                for (let value = 0; value < histogram.length; value++) {
+                    backgroundCount += histogram[value];
+                    if (!backgroundCount) continue;
+                    const foregroundCount = pixelCount - backgroundCount;
+                    if (!foregroundCount) break;
+                    backgroundBrightness += value * histogram[value];
+                    const backgroundMean = backgroundBrightness / backgroundCount;
+                    const foregroundMean = (totalBrightness - backgroundBrightness) / foregroundCount;
+                    const variance = backgroundCount * foregroundCount * (backgroundMean - foregroundMean) ** 2;
+                    if (variance > maxVariance) {
+                        maxVariance = variance;
+                        threshold = value;
+                    }
+                }
+                for (let index = 0; index < pixels.data.length; index += 4) {
+                    const value = pixels.data[index] >= threshold ? 255 : 0;
+                    pixels.data[index] = value;
+                    pixels.data[index + 1] = value;
+                    pixels.data[index + 2] = value;
+                }
+                context.putImageData(pixels, 0, 0);
+                return [contrastImage, await toPngBlob()];
             } finally {
                 image.close();
             }
@@ -695,9 +730,9 @@
             }
         }
 
-        function hasConfidentRecognition(value, words) {
+        function getRecognitionQuality(value, words) {
             const normalizedValue = value.replace(/[^\p{L}\p{N}]/gu, "").toLocaleLowerCase();
-            if (!normalizedValue) return false;
+            if (!normalizedValue) return { coverage: 0, confidence: 0 };
             const matches = words
                 .map((word) => ({
                     text: String(word.text || "").replace(/[^\p{L}\p{N}]/gu, "").toLocaleLowerCase(),
@@ -709,7 +744,12 @@
             const confidence = matches.length
                 ? matches.reduce((total, word) => total + word.confidence * word.text.length, 0) / coveredLength
                 : 0;
-            return coveredLength / normalizedValue.length >= 0.7 && confidence >= 60;
+            return { coverage: Math.min(1, coveredLength / normalizedValue.length), confidence };
+        }
+
+        function hasConfidentRecognition(value, words) {
+            const quality = getRecognitionQuality(value, words);
+            return quality.coverage >= 0.7 && quality.confidence >= 60;
         }
 
         function extractFields(text, words) {
@@ -747,6 +787,29 @@
             return { name, company, phone, email: recognizedEmail };
         }
 
+        function combineRecognizedFields(results) {
+            const fields = ["name", "company", "phone", "email"];
+            return Object.fromEntries(fields.map((field) => {
+                const candidates = new Map();
+                for (const result of results) {
+                    const value = result.fields[field];
+                    if (!value) continue;
+                    const quality = getRecognitionQuality(value, result.words);
+                    if (quality.coverage < 0.7 || quality.confidence < 60) continue;
+                    const key = value.replace(/[^\p{L}\p{N}]/gu, "").toLocaleLowerCase();
+                    const candidate = candidates.get(key) || { value, confidence: 0, support: 0 };
+                    candidate.confidence += quality.confidence;
+                    candidate.support++;
+                    candidates.set(key, candidate);
+                }
+                const best = [...candidates.values()].sort((first, second) =>
+                    (second.confidence / second.support + Math.min(15, (second.support - 1) * 5))
+                    - (first.confidence / first.support + Math.min(15, (first.support - 1) * 5))
+                )[0];
+                return [field, best?.value || ""];
+            }));
+        }
+
         async function readCard(file) {
             if (!file.type.startsWith("image/")) {
                 scanStatus.textContent = "Escolha um ficheiro de imagem para ler o cartão.";
@@ -763,14 +826,14 @@
             scanPreview.src = previewUrl;
             scanPreview.classList.add("visible");
             scanStatus.dataset.state = "active";
-            scanStatus.textContent = "A melhorar a imagem para o reconhecimento…";
+            scanStatus.textContent = "A preparar várias leituras para melhorar o reconhecimento…";
             document.querySelector("#choose-image").disabled = true;
 
             try {
                 if (!window.Tesseract) {
                     throw new Error("A biblioteca de OCR não foi carregada. Verifique a ligação à Internet e tente novamente.");
                 }
-                const preparedImage = await prepareCardImage(file);
+                const preparedImages = await prepareCardImages(file);
                 if (!ocrWorker) {
                     ocrWorker = await window.Tesseract.createWorker("por", 1, {
                         logger: (message) => {
@@ -782,8 +845,26 @@
                         }
                     });
                 }
-                const result = await ocrWorker.recognize(preparedImage);
-                const extracted = extractFields(result.data.text, result.data.words || []);
+                const passResults = [];
+                const segmentationModes = [
+                    { mode: "3", label: "normal" },
+                    { mode: "11", label: "texto disperso" }
+                ];
+                try {
+                    for (const segmentation of segmentationModes) {
+                        await ocrWorker.setParameters({ tessedit_pageseg_mode: segmentation.mode });
+                        for (let imageIndex = 0; imageIndex < preparedImages.length; imageIndex++) {
+                            const passNumber = passResults.length + 1;
+                            scanStatus.textContent = `Leitura ${passNumber} de 4 (${segmentation.label})…`;
+                            const result = await ocrWorker.recognize(preparedImages[imageIndex]);
+                            const words = result.data.words || [];
+                            passResults.push({ fields: extractFields(result.data.text, words), words });
+                        }
+                    }
+                } finally {
+                    await ocrWorker.setParameters({ tessedit_pageseg_mode: "3" });
+                }
+                const extracted = combineRecognizedFields(passResults);
                 if (extracted.name) nameInput.value = extracted.name;
                 if (extracted.company) companyInput.value = extracted.company;
                 if (extracted.phone) phoneInput.value = extracted.phone;
