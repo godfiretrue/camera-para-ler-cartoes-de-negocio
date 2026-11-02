@@ -499,7 +499,14 @@
             scanStatus.textContent = "A aguardar autorização para utilizar a câmara…";
             scanStatus.dataset.state = "active";
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
                 if (cameraRequest !== cameraRequestNumber) {
                     stream.getTracks().forEach((track) => track.stop());
                     return;
@@ -538,6 +545,42 @@
             }
             closeCamera();
             await readCard(new File([photo], "cartao-visita.jpg", { type: "image/jpeg" }));
+        }
+
+        async function prepareCardImage(file) {
+            const image = await createImageBitmap(file);
+            try {
+                const maxDimension = Math.max(image.width, image.height);
+                const scale = Math.min(2, 1800 / maxDimension);
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.max(1, Math.round(image.width * scale));
+                canvas.height = Math.max(1, Math.round(image.height * scale));
+                const context = canvas.getContext("2d", { willReadFrequently: true });
+                if (!context) throw new Error("Não foi possível preparar a imagem para o reconhecimento.");
+
+                context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+                for (let index = 0; index < pixels.data.length; index += 4) {
+                    const gray = pixels.data[index] * 0.299
+                        + pixels.data[index + 1] * 0.587
+                        + pixels.data[index + 2] * 0.114;
+                    const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.25 + 128));
+                    pixels.data[index] = contrasted;
+                    pixels.data[index + 1] = contrasted;
+                    pixels.data[index + 2] = contrasted;
+                }
+                context.putImageData(pixels, 0, 0);
+
+                const preparedImage = await new Promise((resolve, reject) => {
+                    canvas.toBlob((blob) => {
+                        if (blob) resolve(blob);
+                        else reject(new Error("Não foi possível preparar a imagem para o reconhecimento."));
+                    }, "image/png");
+                });
+                return preparedImage;
+            } finally {
+                image.close();
+            }
         }
 
         function makeActionButton(label, visibleLabel, iconPath, handler) {
@@ -652,17 +695,35 @@
             }
         }
 
-        function extractFields(text) {
+        function hasConfidentRecognition(value, words) {
+            const normalizedValue = value.replace(/[^\p{L}\p{N}]/gu, "").toLocaleLowerCase();
+            if (!normalizedValue) return false;
+            const matches = words
+                .map((word) => ({
+                    text: String(word.text || "").replace(/[^\p{L}\p{N}]/gu, "").toLocaleLowerCase(),
+                    confidence: Number(word.confidence)
+                }))
+                .filter((word) => word.text.length >= 2 && normalizedValue.includes(word.text)
+                    && Number.isFinite(word.confidence));
+            const coveredLength = matches.reduce((total, word) => total + word.text.length, 0);
+            const confidence = matches.length
+                ? matches.reduce((total, word) => total + word.confidence * word.text.length, 0) / coveredLength
+                : 0;
+            return coveredLength / normalizedValue.length >= 0.7 && confidence >= 60;
+        }
+
+        function extractFields(text, words) {
             const lines = text.split(/\r?\n/).map((line) => line.replace(/[|•▪]/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean);
             const email = (
                 text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
                 || text.match(/[A-Z0-9._%+-]+(?:\(Q|[Q©])[A-Z0-9.-]+\.[A-Z]{2,}/i)
             )?.[0].replace(/\(Q|[Q©]/i, "@") || "";
-            const phone = (text.match(/(?:\+?\d[\d\s()./-]{6,}\d)/g) || [])
+            const recognizedEmail = email && hasConfidentRecognition(email, words) ? email : "";
+            const phone = ((text.match(/(?:\+?\d[\d\s()./-]{6,}\d)/g) || [])
                 .find((value) => {
                     const digits = value.replace(/\D/g, "").length;
-                    return digits >= 8 && digits <= 15;
-                })?.replace(/\s+/g, " ").trim() || "";
+                    return digits >= 8 && digits <= 15 && hasConfidentRecognition(value, words);
+                })?.replace(/\s+/g, " ").trim() || "");
             const companyWords = /\b(?:ltda|limitada|lda|inc\.?|llc|ltd\.?|corp\.?|corporation|company|gmbh|s\.?a\.?|sarl|unipessoal|grupo|group|solutions|soluções|consulting|consultoria|technologies|technology|tecnologia|services|serviços|industries|studio|agency|banco|hotel|universidade)\b/i;
             const roleWords = /\b(?:ceo|cto|cfo|director|diretor|diretora|manager|gerente|presidente|sales|vendas|marketing|engineer|engenheiro|consultor|developer|designer|accountant|advogado|advogada|arquiteto|arquiteta)\b/i;
             const addressWords = /\b(?:rua|avenida|av\.|travessa|largo|praça|praca|estrada|street|road|suite|piso|andar|código postal|codigo postal|postal code)\b/i;
@@ -671,6 +732,7 @@
                 && !/\d/.test(line)
                 && /^[\p{L}][\p{L}\p{M}\s.'’&-]*$/u.test(line)
                 && !addressWords.test(line)
+                && hasConfidentRecognition(line, words)
             );
             const company = candidates.find((line) => companyWords.test(line) && line.split(/\s+/).length <= 8)
                 || candidates.find((line) => line === line.toUpperCase() && line.length > 2 && line.split(/\s+/).length <= 6)
@@ -682,7 +744,7 @@
                 const count = line.split(/\s+/).length;
                 return count >= 2 && count <= 5 && !companyWords.test(line) && !roleWords.test(line) && line !== company;
             }) || "";
-            return { name, company, phone, email };
+            return { name, company, phone, email: recognizedEmail };
         }
 
         async function readCard(file) {
@@ -701,13 +763,14 @@
             scanPreview.src = previewUrl;
             scanPreview.classList.add("visible");
             scanStatus.dataset.state = "active";
-            scanStatus.textContent = "A preparar o reconhecimento em português…";
+            scanStatus.textContent = "A melhorar a imagem para o reconhecimento…";
             document.querySelector("#choose-image").disabled = true;
 
             try {
                 if (!window.Tesseract) {
                     throw new Error("A biblioteca de OCR não foi carregada. Verifique a ligação à Internet e tente novamente.");
                 }
+                const preparedImage = await prepareCardImage(file);
                 if (!ocrWorker) {
                     ocrWorker = await window.Tesseract.createWorker("por", 1, {
                         logger: (message) => {
@@ -719,16 +782,16 @@
                         }
                     });
                 }
-                const result = await ocrWorker.recognize(file);
-                const extracted = extractFields(result.data.text);
+                const result = await ocrWorker.recognize(preparedImage);
+                const extracted = extractFields(result.data.text, result.data.words || []);
                 if (extracted.name) nameInput.value = extracted.name;
                 if (extracted.company) companyInput.value = extracted.company;
                 if (extracted.phone) phoneInput.value = extracted.phone;
                 if (extracted.email) emailInput.value = extracted.email;
                 const filled = Object.values(extracted).filter(Boolean).length;
                 scanStatus.textContent = filled
-                    ? `${filled} campo(s) preenchido(s). Confirme e corrija os dados antes de guardar.`
-                    : "Não foi possível identificar os campos. Preencha-os manualmente e tente uma fotografia mais nítida.";
+                    ? `${filled} campo(s) reconhecido(s) com confiança suficiente. Confirme e corrija os dados antes de guardar.`
+                    : "Não foi possível identificar campos com confiança suficiente. Preencha-os manualmente e tente uma fotografia mais nítida.";
                 scanStatus.dataset.state = "active";
                 if (extracted.email && !emailInput.validity.valid) {
                     scanStatus.textContent += " Verifique o endereço de e-mail.";

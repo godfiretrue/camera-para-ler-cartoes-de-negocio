@@ -30,8 +30,13 @@ $check('A lista tem um destino programático para devolver o foco', $xpath->quer
 $check('Ações dos contactos têm texto visível criado como texto', str_contains($html, 'text.textContent = visibleLabel;'));
 $check('Campos inválidos expõem erro associado e estado inválido', str_contains($html, 'input.setAttribute("aria-invalid", "true")'));
 $check('Ações principais mantêm-se numa coluna em ecrãs estreitos', str_contains($html, '.hero-actions .button { width: 100%;'));
-$check('A leitura de cartões continua a usar Tesseract.js', str_contains($html, 'Tesseract.createWorker("por"')
-    && str_contains($html, 'ocrWorker.recognize(file)'));
+$check('A leitura de cartões usa Tesseract.js e valida a confiança do OCR', str_contains($html, 'Tesseract.createWorker("por"')
+    && str_contains($html, 'ocrWorker.recognize(preparedImage)')
+    && str_contains($html, 'confidence >= 60'));
+$check('A fotografia é preparada no navegador antes do OCR', str_contains($html, 'prepareCardImage(file)')
+    && str_contains($html, 'context.getImageData'));
+$check('A câmara prefere a resolução elevada e a câmara traseira', str_contains($html, 'width: { ideal: 1920 }')
+    && str_contains($html, 'facingMode: { ideal: "environment" }'));
 
 $color = static function (string $pattern) use ($html): string {
     if (!preg_match($pattern, $html, $matches)) {
