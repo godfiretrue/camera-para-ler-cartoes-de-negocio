@@ -2,7 +2,7 @@
 
 ## Configurar Supabase
 
-1. Abra o projeto Supabase e execute [`database/supabase.sql`](./database/supabase.sql) no SQL Editor. O script também adiciona a coluna de tipo aos contactos existentes, sem alterar os registos.
+1. Abra no Supabase o projeto correspondente ao `SUPABASE_URL` configurado na Vercel e execute [`database/supabase.sql`](./database/supabase.sql) no SQL Editor. O script também adiciona a coluna de tipo aos contactos existentes, sem alterar os registos.
 2. Copie o Project URL e a chave secreta de servidor `service_role` (legacy). Não coloque a chave em código de frontend.
 
 ## Deploy na Vercel
@@ -19,7 +19,7 @@ Na Vercel, cada variável tem de estar marcada para o ambiente do deployment (Pr
 
 ## Tipo de contacto
 
-Cada contacto pode ser classificado como **Potencial Cliente**, **Cliente** ou **Fornecedor**. O tipo pode ser definido ao criar ou editar um contacto e usado para filtrar a lista. Na instalação local, os dados continuam guardados em SQLite e a coluna é adicionada automaticamente às bases de dados existentes. No Supabase, execute novamente `database/supabase.sql` para aplicar a migração antes de usar a nova versão.
+Cada contacto pode ser classificado como **Potencial Cliente**, **Cliente** ou **Fornecedor**. O tipo pode ser definido ao criar ou editar um contacto e usado para filtrar a lista. Na instalação local, os dados continuam guardados em SQLite e a coluna é adicionada automaticamente às bases de dados existentes. No Supabase, execute `database/supabase.sql` no SQL Editor do projeto indicado pelo `SUPABASE_URL` antes de usar a nova versão. Se surgir o erro `contacts.type does not exist`, a migração não foi aplicada nesse projeto ou a Vercel aponta para outro projeto. Depois de aplicar o SQL, basta recarregar a aplicação; não é necessário um novo deployment.
 
 ## Execução local
 
@@ -32,6 +32,16 @@ Na aplicação publicada, escolha **Ler cartão de visita**. Em computadores, a 
 A leitura só preenche e-mail com formato reconhecível, telefone com 8 a 15 algarismos e nome/empresa em linhas de texto sem números, endereços ou cargos comuns. O nome deve ter entre duas e cinco palavras; a empresa é identificada por termos empresariais ou texto em maiúsculas. Campos incertos ficam em branco para evitar preencher dados inventados; reveja sempre o resultado antes de guardar.
 
 O acesso à câmara do telemóvel depende do suporte do navegador e, normalmente, de uma ligação HTTPS. Também é possível selecionar uma fotografia já existente.
+
+## Acessibilidade
+
+A revisão da interface face aos critérios aplicáveis da WCAG 2.2 nível AA, com diagnóstico, alterações, evidências e limitações, está em [`ACCESSIBILITY-REPORT.md`](./ACCESSIBILITY-REPORT.md). Para executar as verificações estáticas locais, use:
+
+```sh
+/Applications/XAMPP/xamppfiles/bin/php tests/accessibility-smoke.php
+```
+
+Estas verificações não substituem a validação manual com teclado, leitor de ecrã, zoom e dispositivos/navegadores reais.
 
 ## Se aparecer um erro na aplicação publicada
 

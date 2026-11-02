@@ -15,7 +15,7 @@
             text-rendering: optimizeLegibility;
             --green: #216b59;
             --green-dark: #174f42;
-            --muted: #71817b;
+            --muted: #52635c;
             --line: #e4e9e3;
         }
 
@@ -23,9 +23,9 @@
         body { min-width: 320px; min-height: 100vh; margin: 0; }
         button, input { font: inherit; }
         button { cursor: pointer; }
-        button:focus-visible, input:focus-visible {
-            outline: 3px solid #91c6b5;
-            outline-offset: 2px;
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+            outline: 3px solid #216b59;
+            outline-offset: 3px;
         }
         .page { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
         .topbar {
@@ -96,7 +96,7 @@
             border: 1px solid var(--line);
             border-radius: 10px;
             background: white;
-            color: #61736c;
+            color: #52635c;
         }
         .icon-button:hover { background: #f4f7f4; }
         .scan-box {
@@ -129,19 +129,23 @@
             min-height: 44px;
             margin-top: 7px;
             padding: 0 12px;
-            border: 1px solid #dfe6df;
+            border: 1px solid #6f7f76;
             border-radius: 9px;
             background: white;
             color: #1d302d;
         }
-        .field input::placeholder, .search input::placeholder { color: #a0aaa4; }
+        .field input::placeholder, .search input::placeholder { color: #64756d; opacity: 1; }
+        .field-help { display: block; margin-top: 5px; color: var(--muted); font-size: .78rem; font-weight: 400; line-height: 1.4; }
+        .field-error { display: block; margin-top: 5px; color: #aa3e39; font-size: .82rem; font-weight: 600; line-height: 1.4; }
+        .field-error[hidden] { display: none; }
+        .form-instructions { margin: 0 0 12px; color: var(--muted); font-size: .82rem; line-height: 1.5; }
         .form-error { min-height: 20px; margin: 9px 0 0; color: #aa3e39; font-size: .82rem; }
         .form-actions { display: flex; gap: 9px; margin-top: 14px; }
         .directory { padding: 22px; }
         .directory-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
         .count { margin: 6px 0 0; color: var(--muted); font-size: .85rem; }
         .search { position: relative; margin: 18px 0 14px; }
-        .search svg { position: absolute; top: 50%; left: 13px; color: #81918a; transform: translateY(-50%); pointer-events: none; }
+        .search svg { position: absolute; top: 50%; left: 13px; color: #52635c; transform: translateY(-50%); pointer-events: none; }
         .search input { min-height: 46px; margin: 0; padding-left: 41px; background: #fafbf9; }
         .directory-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, .55fr); gap: 10px; margin: 18px 0 14px; }
         .directory-filters .search { margin: 0; }
@@ -160,16 +164,18 @@
         .contact-card h3 { overflow-wrap: anywhere; margin: 0; font-size: .98rem; letter-spacing: -.015em; }
         .company { overflow-wrap: anywhere; margin: 4px 0 0; color: var(--green); font-size: .85rem; font-weight: 650; }
         .contact-type { display: inline-block; margin-top: 8px; padding: 4px 8px; border-radius: 999px; background: #edf4ef; color: #315b48; font-size: .72rem; font-weight: 700; }
-        .contact-meta { display: flex; flex-wrap: wrap; gap: 7px 16px; margin-top: 12px; color: #667770; font-size: .79rem; }
-        .contact-meta a { color: inherit; text-decoration: none; }
+        .contact-meta { display: flex; flex-wrap: wrap; gap: 7px 16px; margin-top: 12px; color: #52635c; font-size: .79rem; }
+        .contact-meta a { overflow-wrap: anywhere; color: var(--green); text-decoration: underline; text-underline-offset: 2px; }
         .contact-meta a:hover { color: var(--green); text-decoration: underline; }
         .contact-actions { display: flex; align-items: flex-start; gap: 6px; }
-        .contact-actions button { width: 34px; height: 34px; }
+        .contact-actions button { display: flex; min-width: 90px; min-height: 40px; align-items: center; justify-content: center; gap: 6px; width: auto; padding: 0 9px; white-space: nowrap; }
+        .contact-actions button svg { flex: 0 0 auto; }
         .empty-state { padding: 36px 15px; border: 1px dashed #dce5dd; border-radius: 12px; color: var(--muted); text-align: center; }
         .empty-state strong { display: block; margin-bottom: 6px; color: #354a42; font-size: .94rem; }
         .error-state { padding: 15px; border-radius: 10px; background: #fff3f1; color: #963b35; font-size: .87rem; line-height: 1.5; }
-        .footer { padding: 0 0 28px; color: #84918b; font-size: .78rem; text-align: center; }
+        .footer { padding: 0 0 28px; color: #52635c; font-size: .78rem; text-align: center; }
         .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+        #directory-title:focus { outline: 3px solid #216b59; outline-offset: 3px; border-radius: 2px; }
 
         @media (max-width: 800px) {
             .workspace.has-editor { grid-template-columns: minmax(0, 1fr); }
@@ -181,8 +187,10 @@
             .topbar { min-height: 72px; }
             .hero { padding: 34px 0 24px; }
             .hero-copy { font-size: .96rem; }
-            .hero-actions { display: grid; grid-template-columns: 1fr 1fr; }
-            .hero-actions .button { padding: 0 10px; font-size: .83rem; }
+            .hero-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+            .hero-actions .button { width: 100%; padding: 0 10px; font-size: .83rem; }
+            .form-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+            .form-actions .button { width: 100%; }
             .workspace { gap: 14px; }
             .editor, .directory { padding: 17px; border-radius: 15px; }
             .fields { grid-template-columns: 1fr; gap: 12px; }
@@ -192,6 +200,8 @@
             .scan-box .button { width: 100%; }
             .contact-card { padding: 13px; }
             .contact-meta { display: grid; gap: 7px; }
+            .contact-actions { flex-direction: column; }
+            .contact-actions button { min-width: 0; justify-content: flex-start; width: 100%; }
         }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
@@ -215,11 +225,11 @@
                 <h1 id="page-title">Contactos organizados.<br>Relações mais próximas.</h1>
                 <p class="hero-copy">Guarde os contactos das reuniões e feiras, encontre-os em segundos e transforme cartões de visita em registos digitais.</p>
                 <div class="hero-actions">
-                    <button class="button button-primary" id="new-contact" type="button">
+                    <button class="button button-primary" id="new-contact" type="button" aria-controls="editor" aria-expanded="false">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                         Adicionar contacto
                     </button>
-                    <button class="button button-secondary" id="scan-card" type="button">
+                    <button class="button button-secondary" id="scan-card" type="button" aria-controls="editor" aria-expanded="false">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3m0 8v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3M7 12h10m-5-5v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                         Ler cartão de visita
                     </button>
@@ -246,7 +256,7 @@
                             <small>Preenche apenas nome, empresa, telefone e e-mail reconhecidos. Campos incertos ficam em branco para confirmar manualmente.</small>
                         </div>
                         <button class="button button-quiet" id="choose-image" type="button">Escolher fotografia</button>
-                        <input class="sr-only" id="card-image" type="file" accept="image/*" capture="environment" aria-label="Fotografar ou escolher cartão de visita">
+                        <input id="card-image" type="file" accept="image/*" capture="environment" aria-label="Fotografar ou escolher cartão de visita" hidden>
                     </div>
                     <div class="camera-capture" id="camera-capture" hidden>
                         <video class="camera-video" id="camera-video" autoplay playsinline muted aria-label="Pré-visualização da câmara"></video>
@@ -259,9 +269,11 @@
                     <p class="scan-status" id="scan-status" role="status" aria-live="polite"></p>
 
                     <form id="contact-form" novalidate>
+                        <p class="form-instructions">O nome é obrigatório. Empresa, telefone e e-mail são opcionais; o tipo tem uma opção predefinida.</p>
                         <div class="fields">
-                            <label class="field full" for="field-name">Nome *
-                                <input id="field-name" name="name" autocomplete="name" maxlength="255" required placeholder="Ex.: Ana Costa">
+                            <label class="field full" for="field-name">Nome (obrigatório)
+                                <input id="field-name" name="name" autocomplete="name" maxlength="255" required placeholder="Ex.: Ana Costa" aria-describedby="name-error">
+                                <span class="field-error" id="name-error" hidden></span>
                             </label>
                             <label class="field full" for="field-company">Empresa
                                 <input id="field-company" name="company" autocomplete="organization" maxlength="255" placeholder="Ex.: Empresa, Lda.">
@@ -269,8 +281,10 @@
                             <label class="field" for="field-phone">Telefone
                                 <input id="field-phone" name="phone" type="tel" autocomplete="tel" maxlength="255" placeholder="+351 912 345 678">
                             </label>
-                            <label class="field" for="field-email">E-mail
-                                <input id="field-email" name="email" type="email" autocomplete="email" maxlength="255" placeholder="ana@empresa.pt">
+                            <label class="field" for="field-email">E-mail (opcional)
+                                <input id="field-email" name="email" type="email" autocomplete="email" maxlength="255" placeholder="ana@empresa.pt" aria-describedby="email-hint email-error">
+                                <span class="field-help" id="email-hint">Formato: nome@empresa.pt.</span>
+                                <span class="field-error" id="email-error" hidden></span>
                             </label>
                             <label class="field full" for="field-type">Tipo de contacto
                                 <select id="field-type" name="type" required>
@@ -291,7 +305,7 @@
                 <section class="panel directory" aria-labelledby="directory-title">
                     <div class="directory-head">
                         <div>
-                            <h2 id="directory-title">Os seus contactos</h2>
+                            <h2 id="directory-title" tabindex="-1">Os seus contactos</h2>
                             <p class="count" id="contact-count" aria-live="polite">A carregar contactos…</p>
                         </div>
                     </div>
@@ -326,10 +340,15 @@
         const editor = document.querySelector("#editor");
         const editorTitle = document.querySelector("#editor-title");
         const form = document.querySelector("#contact-form");
+        const newContactButton = document.querySelector("#new-contact");
+        const scanCardButton = document.querySelector("#scan-card");
+        const editorTriggers = [newContactButton, scanCardButton];
         const nameInput = document.querySelector("#field-name");
+        const nameError = document.querySelector("#name-error");
         const companyInput = document.querySelector("#field-company");
         const phoneInput = document.querySelector("#field-phone");
         const emailInput = document.querySelector("#field-email");
+        const emailError = document.querySelector("#email-error");
         const typeInput = document.querySelector("#field-type");
         const saveButton = document.querySelector("#save-contact");
         const formError = document.querySelector("#form-error");
@@ -342,6 +361,7 @@
         const contactCount = document.querySelector("#contact-count");
         const searchInput = document.querySelector("#search");
         let editingId = null;
+        let editorReturnFocus = null;
         let searchTimer = 0;
         let requestNumber = 0;
         let previewUrl = "";
@@ -391,12 +411,28 @@
             return payload;
         }
 
+        function clearFieldError(input, errorElement) {
+            errorElement.textContent = "";
+            errorElement.hidden = true;
+            input.removeAttribute("aria-invalid");
+        }
+
+        function setFieldError(input, errorElement, message) {
+            errorElement.textContent = message;
+            errorElement.hidden = false;
+            input.setAttribute("aria-invalid", "true");
+            input.focus();
+        }
+
         function showEditor({ editId = null, contact = null } = {}) {
             closeCamera();
+            editorReturnFocus = document.activeElement;
             editingId = editId;
             editorTitle.textContent = editId === null ? "Novo contacto" : "Editar contacto";
             saveButton.textContent = editId === null ? "Guardar contacto" : "Guardar alterações";
             formError.textContent = "";
+            clearFieldError(nameInput, nameError);
+            clearFieldError(emailInput, emailError);
             scanStatus.textContent = "";
             scanStatus.dataset.state = "idle";
             form.reset();
@@ -408,6 +444,7 @@
                 typeInput.value = contact.type || "Potencial Cliente";
             }
             editor.hidden = false;
+            editorTriggers.forEach((trigger) => trigger.setAttribute("aria-expanded", "true"));
             workspace.classList.add("has-editor");
             nameInput.focus();
             if (window.matchMedia("(max-width: 800px)").matches) {
@@ -415,11 +452,14 @@
             }
         }
 
-        function closeEditor() {
+        function closeEditor({ restoreFocus = true } = {}) {
             closeCamera();
             editor.hidden = true;
+            editorTriggers.forEach((trigger) => trigger.setAttribute("aria-expanded", "false"));
             workspace.classList.remove("has-editor");
             formError.textContent = "";
+            clearFieldError(nameInput, nameError);
+            clearFieldError(emailInput, emailError);
             scanStatus.textContent = "";
             imageInput.value = "";
             if (previewUrl) {
@@ -428,6 +468,12 @@
             }
             scanPreview.removeAttribute("src");
             scanPreview.classList.remove("visible");
+            const returnFocus = editorReturnFocus;
+            editorReturnFocus = null;
+            if (restoreFocus) {
+                if (returnFocus?.isConnected) returnFocus.focus();
+                else newContactButton.focus();
+            }
         }
 
         function closeCamera() {
@@ -494,13 +540,16 @@
             await readCard(new File([photo], "cartao-visita.jpg", { type: "image/jpeg" }));
         }
 
-        function makeActionButton(label, iconPath, handler) {
+        function makeActionButton(label, visibleLabel, iconPath, handler) {
             const button = document.createElement("button");
             button.className = "icon-button";
             button.type = "button";
             button.setAttribute("aria-label", label);
             button.title = label;
             button.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">${iconPath}</svg>`;
+            const text = document.createElement("span");
+            text.textContent = visibleLabel;
+            button.append(text);
             button.addEventListener("click", handler);
             return button;
         }
@@ -561,8 +610,8 @@
                 const actions = document.createElement("div");
                 actions.className = "contact-actions";
                 actions.append(
-                    makeActionButton(`Editar ${contact.name}`, '<path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', () => showEditor({ editId: contact.id, contact })),
-                    makeActionButton(`Eliminar ${contact.name}`, '<path d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', () => deleteContact(contact))
+                    makeActionButton(`Editar ${contact.name}`, "Editar", '<path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', () => showEditor({ editId: contact.id, contact })),
+                    makeActionButton(`Eliminar ${contact.name}`, "Eliminar", '<path d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', () => deleteContact(contact))
                 );
                 card.append(details, actions);
                 contactList.append(card);
@@ -595,8 +644,9 @@
             if (!window.confirm(`Eliminar o contacto de ${contact.name}? Esta ação não pode ser anulada.`)) return;
             try {
                 await requestApi(`${apiUrl}?id=${encodeURIComponent(contact.id)}`, { method: "DELETE" });
-                if (editingId === contact.id) closeEditor();
+                if (editingId === contact.id) closeEditor({ restoreFocus: false });
                 await loadContacts();
+                document.querySelector("#directory-title").focus();
             } catch (error) {
                 window.alert(error.message);
             }
@@ -711,16 +761,26 @@
         });
         document.querySelector("#close-editor").addEventListener("click", closeEditor);
         document.querySelector("#cancel-edit").addEventListener("click", closeEditor);
+        nameInput.addEventListener("input", () => {
+            if (nameInput.value.trim()) clearFieldError(nameInput, nameError);
+        });
+        emailInput.addEventListener("input", () => {
+            if (!emailInput.value || emailInput.validity.valid) clearFieldError(emailInput, emailError);
+        });
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
             formError.textContent = "";
+            clearFieldError(nameInput, nameError);
+            clearFieldError(emailInput, emailError);
             if (!nameInput.value.trim()) {
-                formError.textContent = "O nome é obrigatório.";
-                nameInput.focus();
+                setFieldError(nameInput, nameError, "O nome é obrigatório. Introduza o nome da pessoa.");
                 return;
             }
-            if (!form.reportValidity()) return;
+            if (emailInput.value && !emailInput.validity.valid) {
+                setFieldError(emailInput, emailError, "O e-mail não parece válido. Use o formato nome@empresa.pt.");
+                return;
+            }
 
             const contact = {
                 name: nameInput.value.trim(),
@@ -734,9 +794,10 @@
             try {
                 const url = editingId === null ? apiUrl : `${apiUrl}?id=${encodeURIComponent(editingId)}`;
                 await requestApi(url, { method: editingId === null ? "POST" : "PUT", body: JSON.stringify(contact) });
-                closeEditor();
+                closeEditor({ restoreFocus: false });
                 searchInput.value = "";
                 await loadContacts();
+                document.querySelector("#directory-title").focus();
             } catch (error) {
                 formError.textContent = error.message;
             } finally {

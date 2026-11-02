@@ -96,9 +96,13 @@ async function supabaseRequest(config, path, options = {}) {
     }
     if (!response.ok) {
         console.error("Supabase request failed:", response.status, payload?.code || payload?.message || "Unknown error");
+        const missingTypeColumn = payload?.code === "42703"
+            && /(?:contacts\.type|column\s+["']?type["']?)\s+does not exist/i.test(payload?.message || "");
         const message = response.status >= 500
             ? "A base de dados Supabase está temporariamente indisponível."
-            : payload?.message || "Não foi possível concluir a operação na base de dados.";
+            : missingTypeColumn
+                ? "A coluna de classificação ainda não existe nesta base de dados. No SQL Editor do projeto Supabase configurado na Vercel, execute database/supabase.sql e volte a carregar a aplicação."
+                : payload?.message || "Não foi possível concluir a operação na base de dados.";
         const error = new Error(message);
         error.status = response.status >= 500 ? 502 : response.status;
         error.code = typeof payload?.code === "string" ? payload.code : null;
